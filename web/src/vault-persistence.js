@@ -1,6 +1,5 @@
 import { bindDeactivated } from "./telegram.js";
 
-export const DEVICE_SECRET_KEY = "device_secret_v1";
 export const META_KEY = "vault_meta_v1";
 export const SLOT_A_KEY = "vault_slot_a_v1";
 export const SLOT_B_KEY = "vault_slot_b_v1";
@@ -18,38 +17,24 @@ export class VaultPersistenceError extends Error {
 }
 
 export class VaultPersistence {
-  constructor({ deviceStorage, secureStorage, wasm }) {
+  constructor({ deviceStorage, wasm }) {
     this.device = deviceStorage;
-    this.secure = secureStorage;
     this.wasm = wasm;
   }
 
   async inspectState() {
-    const [metadata, deviceSecret] = await Promise.all([
-      this.device.get(META_KEY),
-      this.secure.get(DEVICE_SECRET_KEY),
-    ]);
+    const metadata = await this.device.get(META_KEY);
     if (metadata === null) {
-      return {
-        state: "uninitialized",
-        canRestoreDeviceSecret: deviceSecret.canRestore,
-      };
+      return { state: "uninitialized" };
     }
-    if (deviceSecret.value === null) {
-      return {
-        state: "missing_device_secret",
-        canRestoreDeviceSecret: deviceSecret.canRestore,
-      };
-    }
-    return { state: "locked", canRestoreDeviceSecret: false };
+    return { state: "locked" };
   }
 
   async createSession(masterPassword, now = Date.now()) {
     if ((await this.device.get(META_KEY)) !== null) {
       throw new VaultPersistenceError("already_initialized");
     }
-    const deviceSecret = await this.ensureDeviceSecret();
-    const bundle = this.wasm.VaultSession.create(masterPassword, deviceSecret, now);
+    const bundle = this.wasm.VaultSession.create(masterPassword, now);
     const persistentValues = {
       slotKey: bundle.slotKey,
       slotJson: bundle.slotJson,
@@ -67,14 +52,9 @@ export class VaultPersistence {
   }
 
   async openSession(masterPassword) {
-    const secureValue = await this.secure.get(DEVICE_SECRET_KEY);
-    if (secureValue.value === null) {
-      throw new VaultPersistenceError("missing_device_secret");
-    }
     const snapshot = await this.loadSnapshot();
     const bundle = this.wasm.VaultSession.open(
       masterPassword,
-      secureValue.value,
       snapshot.metadataJson,
       snapshot.slotAJson,
       snapshot.slotBJson,
@@ -121,8 +101,6 @@ export class VaultPersistence {
   }
 
   async destroySession(session) {
-    const tombstone = this.wasm.generateDeviceSecretEnvelope();
-    await this.secure.setVerified(DEVICE_SECRET_KEY, tombstone);
     session?.lock();
 
     for (const key of VAULT_DEVICE_KEYS) {
@@ -138,20 +116,6 @@ export class VaultPersistence {
       this.device.get(ACTIVE_SLOT_KEY),
     ]);
     return { metadataJson, slotAJson, slotBJson, activePointerJson };
-  }
-
-  async ensureDeviceSecret() {
-    const current = await this.secure.get(DEVICE_SECRET_KEY);
-    if (current.value !== null) {
-      this.wasm.validateDeviceSecretEnvelope(current.value);
-      return current.value;
-    }
-
-    // Deliberately do not call SecureStorage.restoreItem(), even when
-    // current.canRestore is true. A fresh key preserves no-recovery semantics.
-    const generated = this.wasm.generateDeviceSecretEnvelope();
-    await this.secure.setVerified(DEVICE_SECRET_KEY, generated);
-    return generated;
   }
 
   async persistCreated(bundle) {

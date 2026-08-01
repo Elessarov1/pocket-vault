@@ -1,10 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { TelegramDeviceStorage, TelegramSecureStorage } from "../src/storage.js";
+import { TelegramDeviceStorage } from "../src/storage.js";
 import {
   ACTIVE_SLOT_KEY,
-  DEVICE_SECRET_KEY,
   META_KEY,
   SLOT_A_KEY,
   SLOT_B_KEY,
@@ -16,18 +15,10 @@ import { MockWebApp } from "./helpers/mock-telegram.js";
 function createHarness() {
   const webApp = new MockWebApp();
   const sessions = [];
-  let secretCounter = 0;
   const wasm = {
-    generateDeviceSecretEnvelope() {
-      secretCounter += 1;
-      return `secret-${secretCounter}`;
-    },
-    validateDeviceSecretEnvelope(value) {
-      if (!value.startsWith("secret-")) throw new Error("invalid_device_secret");
-    },
     VaultSession: {
-      create(_password, deviceSecret) {
-        assert.match(deviceSecret, /^secret-/);
+      create(_password, now) {
+        assert.equal(now, 100);
         const session = createSession();
         sessions.push(session);
         return {
@@ -50,7 +41,6 @@ function createHarness() {
   };
   const persistence = new VaultPersistence({
     deviceStorage: new TelegramDeviceStorage(webApp.DeviceStorage),
-    secureStorage: new TelegramSecureStorage(webApp.SecureStorage),
     wasm,
   });
   return { webApp, wasm, persistence, sessions };
@@ -87,33 +77,17 @@ function createSession() {
   };
 }
 
-test("first creation stores secret, slot, metadata, then pointer with readback", async () => {
+test("first creation stores slot, metadata, then pointer with readback", async () => {
   const { persistence, webApp } = createHarness();
   const session = await persistence.createSession("a long master phrase", 100);
 
   assert.equal(session.locked, false);
   const relevantWrites = webApp.calls.filter((call) => call.includes(".set:"));
   assert.deepEqual(relevantWrites, [
-    `secure.set:${DEVICE_SECRET_KEY}`,
     `device.set:${SLOT_A_KEY}`,
     `device.set:${META_KEY}`,
     `device.set:${ACTIVE_SLOT_KEY}`,
   ]);
-});
-
-test("missing restorable device secret is never restored automatically", async () => {
-  const { persistence, webApp } = createHarness();
-  webApp.DeviceStorage.values.set(META_KEY, "metadata");
-  webApp.SecureStorage.restorable.add(DEVICE_SECRET_KEY);
-
-  assert.deepEqual(await persistence.inspectState(), {
-    state: "missing_device_secret",
-    canRestoreDeviceSecret: true,
-  });
-  await assert.rejects(persistence.openSession("master"), {
-    code: "missing_device_secret",
-  });
-  assert.equal(webApp.calls.some((call) => call.startsWith("secure.restore:")), false);
 });
 
 test("creation storage failure immediately locks the unpersisted session", async () => {
@@ -127,7 +101,6 @@ test("creation storage failure immediately locks the unpersisted session", async
 
 test("pointer repair failure immediately locks the opened session", async () => {
   const { persistence, webApp, wasm, sessions } = createHarness();
-  webApp.SecureStorage.values.set(DEVICE_SECRET_KEY, "secret-existing");
   webApp.DeviceStorage.values.set(META_KEY, "metadata");
   webApp.DeviceStorage.values.set(SLOT_A_KEY, "slot-a-0");
   wasm.repairedPointerJson = "pointer-a-0";
@@ -157,25 +130,19 @@ test("partial pointer write cancels pending session state", async () => {
   assert.equal(session.cancelled, true);
 });
 
-test("destroy needs no password, replaces device secret first, then clears vault keys", async () => {
+test("destroy needs no password and clears every vault key", async () => {
   const { persistence, webApp } = createHarness();
   const session = createSession();
-  webApp.SecureStorage.values.set(DEVICE_SECRET_KEY, "secret-old");
   for (const key of [META_KEY, SLOT_A_KEY, SLOT_B_KEY, ACTIVE_SLOT_KEY]) {
     webApp.DeviceStorage.values.set(key, "encrypted");
   }
 
   await persistence.destroySession(session);
 
-  assert.equal(webApp.SecureStorage.values.get(DEVICE_SECRET_KEY), "secret-1");
   assert.equal(session.locked, true);
   for (const key of [META_KEY, SLOT_A_KEY, SLOT_B_KEY, ACTIVE_SLOT_KEY]) {
     assert.equal(webApp.DeviceStorage.values.has(key), false);
   }
-  const tombstoneWrite = webApp.calls.indexOf(`secure.set:${DEVICE_SECRET_KEY}`);
-  const firstRemoval = webApp.calls.findIndex((call) => call.startsWith("device.remove:"));
-  assert.ok(tombstoneWrite >= 0 && tombstoneWrite < firstRemoval);
-  assert.equal(webApp.calls.some((call) => call.startsWith("secure.restore:")), false);
 });
 
 test("deactivated hides secrets before locking the session", () => {

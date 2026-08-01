@@ -1,6 +1,6 @@
 import initWasm, * as wasm from "../pkg/vault_wasm.js";
 
-import { TelegramDeviceStorage, TelegramSecureStorage } from "./storage.js";
+import { TelegramDeviceStorage } from "./storage.js";
 import { PreviewWebApp } from "./preview-runtime.js";
 import { resolveTelegramWebApp } from "./telegram.js";
 import { VaultPersistence } from "./vault-persistence.js";
@@ -20,7 +20,6 @@ export async function initializePreviewRuntime() {
 function createRuntime(webApp, mode) {
   const persistence = new VaultPersistence({
     deviceStorage: new TelegramDeviceStorage(webApp.DeviceStorage),
-    secureStorage: new TelegramSecureStorage(webApp.SecureStorage),
     wasm,
   });
 

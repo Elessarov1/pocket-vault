@@ -1,24 +1,16 @@
-use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use rand_core::TryCryptoRng;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use thiserror::Error;
 use vault_core::{
     ACTIVE_SLOT_KEY, ActiveSlotV1, EncryptedVaultSlotV1, EntryId, KdfConfig, META_KEY,
     MemoryStorage, NewVaultEntry, SLOT_A_KEY, SLOT_B_KEY, SlotId, TwoSlotRepository, UnlockedVault,
     UpdateVaultEntry, VaultError, create_vault,
 };
-use zeroize::Zeroizing;
-
-const DEVICE_SECRET_FORMAT: &str = "pocket-vault-device-secret";
-const DEVICE_SECRET_VERSION: u32 = 1;
-const DEVICE_SECRET_BYTES: usize = 32;
 
 #[derive(Debug, Error)]
 pub enum BridgeError {
     #[error("vault operation failed: {0}")]
     Vault(#[from] VaultError),
-    #[error("invalid device secret envelope")]
-    InvalidDeviceSecret,
     #[error("vault session is locked")]
     Locked,
     #[error("a save is already pending")]
@@ -49,7 +41,6 @@ impl BridgeError {
             Self::Vault(VaultError::RandomGenerationFailed) => "random_unavailable",
             Self::Vault(VaultError::AlreadyInitialized) => "already_initialized",
             Self::Vault(VaultError::Uninitialized) | Self::MissingMetadata => "uninitialized",
-            Self::InvalidDeviceSecret => "invalid_device_secret",
             Self::Locked => "locked",
             Self::SavePending => "save_pending",
             Self::NoSavePending => "no_save_pending",
@@ -121,35 +112,19 @@ struct EntryDetails<'a> {
     updated_at: u64,
 }
 
-#[derive(Deserialize, Serialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-struct DeviceSecretEnvelopeV1 {
-    format: String,
-    version: u32,
-    value: String,
-}
-
 impl VaultBridge {
     /// Creates an unlocked session and its initial persistence bundle.
     ///
     /// # Errors
     ///
-    /// Returns an error for an invalid device-secret envelope, master phrase,
-    /// random source, KDF, encryption, or serialization failure.
+    /// Returns an error for an invalid master phrase, random source, KDF,
+    /// encryption, or serialization failure.
     pub fn create(
         master_password: &[u8],
-        device_secret_envelope: &str,
         now: u64,
         rng: &mut impl TryCryptoRng,
     ) -> Result<CreateBundle, BridgeError> {
-        let device_secret = parse_device_secret_envelope(device_secret_envelope)?;
-        let created = create_vault(
-            master_password,
-            &device_secret,
-            KdfConfig::default(),
-            now,
-            rng,
-        )?;
+        let created = create_vault(master_password, KdfConfig::default(), now, rng)?;
         let metadata_json =
             serde_json::to_string(&created.metadata).map_err(|_| BridgeError::Serialization)?;
         let slot_json =
@@ -174,14 +149,12 @@ impl VaultBridge {
     ///
     /// # Errors
     ///
-    /// Returns an error for missing metadata, an invalid device secret,
-    /// malformed storage, or an authentication failure.
+    /// Returns an error for missing metadata, malformed storage, or an
+    /// authentication failure.
     pub fn open(
         master_password: &[u8],
-        device_secret_envelope: &str,
         snapshot: StorageSnapshot,
     ) -> Result<OpenBundle, BridgeError> {
-        let device_secret = parse_device_secret_envelope(device_secret_envelope)?;
         let mut repository = TwoSlotRepository::new(MemoryStorage::default());
         insert_optional(repository.storage_mut(), META_KEY, snapshot.metadata_json);
         insert_optional(repository.storage_mut(), SLOT_A_KEY, snapshot.slot_a_json);
@@ -195,7 +168,7 @@ impl VaultBridge {
             return Err(BridgeError::MissingMetadata);
         }
 
-        let opened = repository.open(master_password, &device_secret)?;
+        let opened = repository.open(master_password)?;
         let repaired_pointer_json = opened
             .active_pointer_repaired
             .then(|| repository.storage().raw(ACTIVE_SLOT_KEY).map(str::to_owned))
@@ -474,56 +447,6 @@ impl VaultBridge {
     }
 }
 
-/// Creates a versioned Secure Storage value using the supplied CSPRNG.
-///
-/// # Errors
-///
-/// Returns an error when randomness or serialization fails.
-pub fn generate_device_secret_envelope(rng: &mut impl TryCryptoRng) -> Result<String, BridgeError> {
-    let mut secret = Zeroizing::new([0_u8; DEVICE_SECRET_BYTES]);
-    rng.try_fill_bytes(secret.as_mut())
-        .map_err(|_| VaultError::RandomGenerationFailed)?;
-    let envelope = DeviceSecretEnvelopeV1 {
-        format: DEVICE_SECRET_FORMAT.to_owned(),
-        version: DEVICE_SECRET_VERSION,
-        value: URL_SAFE_NO_PAD.encode(secret.as_ref()),
-    };
-    serde_json::to_string(&envelope).map_err(|_| BridgeError::Serialization)
-}
-
-/// Validates a Secure Storage device-secret envelope without exposing its bytes.
-///
-/// # Errors
-///
-/// Returns an error for an unsupported envelope or incorrectly encoded secret.
-pub fn validate_device_secret_envelope(value: &str) -> Result<(), BridgeError> {
-    parse_device_secret_envelope(value).map(|_| ())
-}
-
-fn parse_device_secret_envelope(
-    value: &str,
-) -> Result<Zeroizing<[u8; DEVICE_SECRET_BYTES]>, BridgeError> {
-    let envelope: DeviceSecretEnvelopeV1 =
-        serde_json::from_str(value).map_err(|_| BridgeError::InvalidDeviceSecret)?;
-    if envelope.format != DEVICE_SECRET_FORMAT
-        || envelope.version != DEVICE_SECRET_VERSION
-        || envelope.value.contains('=')
-    {
-        return Err(BridgeError::InvalidDeviceSecret);
-    }
-    let decoded = Zeroizing::new(
-        URL_SAFE_NO_PAD
-            .decode(envelope.value)
-            .map_err(|_| BridgeError::InvalidDeviceSecret)?,
-    );
-    let mut secret = Zeroizing::new([0_u8; DEVICE_SECRET_BYTES]);
-    if decoded.len() != DEVICE_SECRET_BYTES {
-        return Err(BridgeError::InvalidDeviceSecret);
-    }
-    secret.copy_from_slice(decoded.as_ref());
-    Ok(secret)
-}
-
 fn parse_entry_id(value: &str) -> Result<EntryId, BridgeError> {
     EntryId::from_base64url(value)
         .map_err(|_| VaultError::InvalidContainer("entry ID is invalid"))
@@ -556,27 +479,14 @@ mod tests {
         ChaCha20Rng::from_seed([seed; 32])
     }
 
-    fn create(seed: u8) -> (String, CreateBundle) {
+    fn create(seed: u8) -> CreateBundle {
         let mut source = rng(seed);
-        let secret = generate_device_secret_envelope(&mut source).unwrap();
-        let created = VaultBridge::create(MASTER, &secret, 100, &mut source).unwrap();
-        (secret, created)
-    }
-
-    #[test]
-    fn device_secret_envelope_is_versioned_and_strict() {
-        let mut source = rng(1);
-        let envelope = generate_device_secret_envelope(&mut source).unwrap();
-        validate_device_secret_envelope(&envelope).unwrap();
-
-        let mut value: serde_json::Value = serde_json::from_str(&envelope).unwrap();
-        value["extra"] = true.into();
-        assert!(validate_device_secret_envelope(&value.to_string()).is_err());
+        VaultBridge::create(MASTER, 100, &mut source).unwrap()
     }
 
     #[test]
     fn list_summaries_never_contain_secrets_or_descriptions() {
-        let (_, mut created) = create(2);
+        let mut created = create(2);
         let mut source = rng(3);
         created
             .session
@@ -597,7 +507,7 @@ mod tests {
 
     #[test]
     fn detail_payload_omits_secret_until_explicitly_requested() {
-        let (_, mut created) = create(3);
+        let mut created = create(3);
         let mut source = rng(4);
         let id = created
             .session
@@ -621,7 +531,7 @@ mod tests {
 
     #[test]
     fn two_phase_save_does_not_advance_before_verified_pointer() {
-        let (_, mut created) = create(4);
+        let mut created = create(4);
         let mut source = rng(5);
         created
             .session
@@ -657,14 +567,14 @@ mod tests {
 
     #[test]
     fn open_repairs_a_missing_pointer_in_the_returned_bundle() {
-        let (secret, created) = create(6);
+        let created = create(6);
         let snapshot = StorageSnapshot {
             metadata_json: Some(created.metadata_json),
             slot_a_json: Some(created.slot_json),
             slot_b_json: None,
             active_pointer_json: None,
         };
-        let opened = VaultBridge::open(MASTER, &secret, snapshot).unwrap();
+        let opened = VaultBridge::open(MASTER, snapshot).unwrap();
 
         assert!(opened.repaired_pointer_json.is_some());
         assert_eq!(opened.session.generation(), Some(0));
@@ -672,7 +582,7 @@ mod tests {
 
     #[test]
     fn lock_removes_access_to_decrypted_entries() {
-        let (_, mut created) = create(7);
+        let mut created = create(7);
         created.session.lock();
         assert!(created.session.is_locked());
         assert_eq!(

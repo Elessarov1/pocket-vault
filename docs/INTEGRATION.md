@@ -11,12 +11,13 @@ npm run build:wasm
 node scripts/serve.mjs
 ```
 
-`web/src/bootstrap.js` проверяет Bot API 9.0, наличие обоих storage API,
+`web/src/bootstrap.js` проверяет Bot API 9.0 и наличие DeviceStorage,
 загружает WASM и создаёт `VaultPersistence`.
 
-Production-цель MVP — Telegram на iOS и Android. Если клиент возвращает
-`UNSUPPORTED` для SecureStorage, приложение закрывает доступ и не подменяет
-защищённое хранилище обычным browser storage.
+Production-цель включает актуальные клиенты Telegram на iOS, Android, Windows,
+macOS и Linux. Хранилище локально для каждого устройства; синхронизации между
+клиентами нет. SecureStorage не требуется: секретный ключ получается только из
+мастер-фразы внутри WASM, а в DeviceStorage записывается только шифротекст.
 
 Для локального просмотра на `localhost` создаются совместимые callback-адаптеры
 в памяти. Они не используют `localStorage`, не переживают перезагрузку и никогда
@@ -25,19 +26,15 @@ Production-цель MVP — Telegram на iOS и Android. Если клиент 
 ## Создание
 
 1. Убедиться, что `vault_meta_v1` отсутствует.
-2. Прочитать `device_secret_v1`.
-3. Если секрета нет, WASM генерирует новый versioned envelope через Web Crypto.
-   `restoreItem()` намеренно не вызывается, даже если Telegram сообщает
-   `canRestore = true`.
-4. Записать и проверить device secret в Secure Storage.
-5. Вызвать `VaultSession.create()`.
-6. Записать с чтением назад: первый слот, metadata, active pointer.
-7. Получить открытую `VaultSession` только после успешной записи всего bundle.
+2. Передать мастер-фразу в `VaultSession.create()`; WASM создаёт соль, DEK,
+   обёртку ключа и первый зашифрованный слот.
+3. Записать с чтением назад: первый слот, metadata, active pointer.
+4. Получить открытую `VaultSession` только после успешной записи всего bundle.
 
 ## Открытие
 
-JavaScript читает четыре Device Storage значения и Secure Storage envelope,
-затем передаёт их в `VaultSession.open()`. WASM проверяет формат, KDF bounds,
+JavaScript читает четыре значения DeviceStorage и передаёт их вместе с
+мастер-фразой в `VaultSession.open()`. WASM проверяет формат, KDF bounds,
 wrapped DEK и оба слота. Если active pointer отсутствует или устарел, WASM
 возвращает исправленное значение, которое адаптер записывает с проверкой.
 
@@ -57,18 +54,15 @@ wrapped DEK и оба слота. Если active pointer отсутствует
 
 ## Уничтожение без мастер-фразы
 
-Актуальная продуктовая политика разрешает уничтожение без мастер-фразы и без
+ Актуальная продуктовая политика разрешает уничтожение без мастер-фразы и без
 биометрии после явного подтверждения в UI. `destroySession()`:
 
-1. генерирует новый случайный tombstone envelope;
-2. перезаписывает и проверяет `device_secret_v1`;
-3. блокирует WASM-сессию;
-4. удаляет и проверяет отсутствие всех четырёх Pocket Vault ключей в Device
-   Storage;
-5. оставляет tombstone и никогда не вызывает `restoreItem()`.
+1. блокирует WASM-сессию;
+2. удаляет и проверяет отсутствие всех четырёх Pocket Vault ключей в
+   DeviceStorage.
 
-Это делает старую локальную обёртку ключа непригодной для приложения, но не
-обещает физическое стирание всех резервных копий ОС или Telegram.
+Это не обещает физическое стирание резервных копий, которые могла создать ОС
+или Telegram.
 
 ## Lifecycle
 

@@ -68,46 +68,6 @@ export class TelegramDeviceStorage {
   }
 }
 
-export class TelegramSecureStorage {
-  constructor(storage, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
-    this.storage = storage;
-    this.timeoutMs = timeoutMs;
-  }
-
-  async get(key) {
-    validateKey(key);
-    const [value, canRestore = false] = await invoke(
-      this.storage,
-      "getItem",
-      [key],
-      this.timeoutMs,
-      "secure.getItem",
-    );
-    if (value !== null && typeof value !== "string") {
-      throw new TelegramStorageError("invalid_response", "secure.getItem");
-    }
-    return { value, canRestore: value === null && canRestore === true };
-  }
-
-  async set(key, value) {
-    validateKey(key);
-    validateValue(value);
-    await mutateAndVerify({
-      storage: this.storage,
-      method: "setItem",
-      args: [key, value],
-      operation: "secure.setItem",
-      timeoutMs: this.timeoutMs,
-      unconfirmedCode: "write_not_confirmed",
-      verify: async () => (await this.get(key)).value === value,
-    });
-  }
-
-  async setVerified(key, value) {
-    await this.set(key, value);
-  }
-}
-
 function invoke(storage, method, args, timeoutMs, operation = method) {
   return new Promise((resolve, reject) => {
     let settled = false;

@@ -2,8 +2,8 @@
 
 Pocket Vault is a local encrypted vault for passwords, PINs, and other short
 secrets inside a Telegram Mini App. Telegram only receives ciphertext: the
-decryption key is derived on the device from a master passphrase and a separate
-device secret.
+decryption key is derived on the device from the master passphrase, which is
+never persisted or sent anywhere.
 
 The source code is available for study, modification, and noncommercial use
 under the PolyForm Noncommercial License 1.0.0. Commercial use requires a
@@ -16,9 +16,8 @@ The repository contains four layers:
   clocks, or a system random-number generator;
 - `crates/vault-wasm` — the WASM boundary that owns the decrypted session and
   implements the two-phase save protocol;
-- `web/src` — Promise-based Telegram `DeviceStorage` and `SecureStorage`
-  adapters, application state controller, capability checks, and lifecycle
-  orchestration;
+- `web/src` — a Promise-based Telegram `DeviceStorage` adapter, application
+  state controller, capability checks, and lifecycle orchestration;
 - `web` — the working Mini App interface connected to WASM and Telegram
   Storage.
 
@@ -51,8 +50,7 @@ requested separately only after an explicit reveal or copy action.
 Vault creation accepts only a valid UTF-8 master passphrase of at least 16
 characters. Strength guidance and confirmation are handled by the UI.
 Passwordless destruction is an intentional product policy: the persistence
-layer replaces the SecureStorage device secret with an irreversible tombstone,
-locks the session, and removes all Pocket Vault keys from DeviceStorage.
+layer locks the session and removes all Pocket Vault keys from DeviceStorage.
 
 The generated `web/pkg` directory is not committed to Git. Run
 `npm run build:wasm` before local integration. The complete storage and
@@ -74,9 +72,14 @@ Localhost enables a safe preview runtime. It uses the same WASM module,
 controller, and persistence protocol, but its callback storage exists only in
 the current tab's memory and is cleared on reload. This fallback is disabled in
 Telegram: the production application requires Bot API 9.0 and uses only
-`DeviceStorage` and `SecureStorage`. The current production target is Telegram
-for iOS and Android; desktop clients that return `UNSUPPORTED` for
-`SecureStorage` fail closed instead of using a weaker fallback.
+`DeviceStorage`. The production target includes current Telegram clients on
+iOS, Android, Windows, macOS, and Linux. Each device has an independent local
+vault; Pocket Vault does not currently synchronize data between devices.
+
+Because no platform-specific secret is required, the master passphrase is the
+only user secret. Anyone who obtains a copy of the encrypted DeviceStorage
+values can attempt offline password guesses; a long, unique passphrase and the
+serialized Argon2id cost are the defenses against that attack.
 
 ## Deployment
 

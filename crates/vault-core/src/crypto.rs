@@ -33,7 +33,6 @@ pub(crate) fn random_array<const N: usize>(
 
 pub(crate) fn derive_kek(
     master_password: &[u8],
-    device_secret: &[u8; KEY_BYTES],
     vault_id: VaultId,
     kdf: &KdfParams,
 ) -> Result<Zeroizing<[u8; KEY_BYTES]>, VaultError> {
@@ -53,11 +52,7 @@ pub(crate) fn derive_kek(
         .hash_password_into(master_password, kdf.salt.as_slice(), password_key.as_mut())
         .map_err(|_| VaultError::KeyDerivationFailed)?;
 
-    let mut ikm = Zeroizing::new([0_u8; KEY_BYTES * 2]);
-    ikm[..KEY_BYTES].copy_from_slice(password_key.as_ref());
-    ikm[KEY_BYTES..].copy_from_slice(device_secret);
-
-    let hkdf = Hkdf::<Sha256>::new(Some(vault_id.as_bytes()), ikm.as_ref());
+    let hkdf = Hkdf::<Sha256>::new(Some(vault_id.as_bytes()), password_key.as_ref());
     let mut kek = Zeroizing::new([0_u8; KEY_BYTES]);
     hkdf.expand(KEK_INFO, kek.as_mut())
         .map_err(|_| VaultError::KeyDerivationFailed)?;

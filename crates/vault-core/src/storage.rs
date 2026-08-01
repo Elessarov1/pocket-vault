@@ -172,11 +172,7 @@ impl<S: DeviceStorage> TwoSlotRepository<S> {
     ///
     /// Returns an error for missing or invalid metadata, key derivation or
     /// authentication failure, or storage failure.
-    pub fn open(
-        &mut self,
-        master_password: &[u8],
-        device_secret: &[u8; 32],
-    ) -> Result<OpenedVault, VaultError> {
+    pub fn open(&mut self, master_password: &[u8]) -> Result<OpenedVault, VaultError> {
         let metadata: VaultMetaV1 = self.read_required_json(META_KEY, MAX_METADATA_JSON_BYTES)?;
         metadata.validate()?;
 
@@ -202,12 +198,7 @@ impl<S: DeviceStorage> TwoSlotRepository<S> {
             return Err(VaultError::WrongPasswordOrCorruptedVault);
         }
 
-        let kek = derive_kek(
-            master_password,
-            device_secret,
-            metadata.vault_id,
-            &metadata.kdf,
-        )?;
+        let kek = derive_kek(master_password, metadata.vault_id, &metadata.kdf)?;
         let dek = unwrap_dek(&kek, &metadata.wrapped_dek, metadata.vault_id)?;
 
         let mut candidates = Vec::with_capacity(encrypted_candidates.len());
@@ -287,8 +278,8 @@ impl<S: DeviceStorage> TwoSlotRepository<S> {
 
     /// Removes and verifies removal of every Device Storage value owned by the vault.
     ///
-    /// This does not remove the separate Secure Storage device secret; the
-    /// platform adapter must perform that step.
+    /// The integration layer owns any stronger deletion guarantees offered by
+    /// the host platform.
     ///
     /// # Errors
     ///

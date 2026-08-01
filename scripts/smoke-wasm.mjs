@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 
 import { VaultAppController } from "../web/src/app-controller.js";
 import { PreviewWebApp } from "../web/src/preview-runtime.js";
-import { TelegramDeviceStorage, TelegramSecureStorage } from "../web/src/storage.js";
+import { TelegramDeviceStorage } from "../web/src/storage.js";
 import { VaultPersistence } from "../web/src/vault-persistence.js";
-import { initSync, VaultSession, generateDeviceSecretEnvelope, validateDeviceSecretEnvelope } from "../web/pkg/vault_wasm.js";
+import { initSync, VaultSession } from "../web/pkg/vault_wasm.js";
 
 const bytes = await readFile(new URL("../web/pkg/vault_wasm_bg.wasm", import.meta.url));
 initSync({ module: bytes });
@@ -13,8 +13,7 @@ initSync({ module: bytes });
 const webApp = new PreviewWebApp();
 const persistence = new VaultPersistence({
   deviceStorage: new TelegramDeviceStorage(webApp.DeviceStorage),
-  secureStorage: new TelegramSecureStorage(webApp.SecureStorage),
-  wasm: { VaultSession, generateDeviceSecretEnvelope, validateDeviceSecretEnvelope },
+  wasm: { VaultSession },
 });
 let timestamp = 1_800_000_000_000;
 const controller = new VaultAppController({ persistence, now: () => timestamp++ });

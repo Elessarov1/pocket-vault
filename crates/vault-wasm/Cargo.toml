@@ -11,7 +11,6 @@ description = "WebAssembly boundary for Pocket Vault"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-base64.workspace = true
 getrandom = { workspace = true, features = ["wasm_js"] }
 rand_core.workspace = true
 serde.workspace = true

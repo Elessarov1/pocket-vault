@@ -19,7 +19,6 @@ export function resolveTelegramWebApp(root = globalThis) {
   }
 
   assertMethods(webApp.DeviceStorage, ["getItem", "setItem", "removeItem"]);
-  assertMethods(webApp.SecureStorage, ["getItem", "setItem"]);
   return webApp;
 }
 

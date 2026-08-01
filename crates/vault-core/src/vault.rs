@@ -47,7 +47,7 @@ impl fmt::Debug for UnlockedVault {
     }
 }
 
-/// Creates a new empty vault using a caller-provided device secret and CSPRNG.
+/// Creates a new empty vault using a master password and caller-provided CSPRNG.
 ///
 /// The caller retains ownership of `master_password` and must zeroize its input
 /// buffer after this function returns.
@@ -58,7 +58,6 @@ impl fmt::Debug for UnlockedVault {
 /// encryption fails, or the initial container exceeds its size limit.
 pub fn create_vault(
     master_password: &[u8],
-    device_secret: &[u8; KEY_BYTES],
     config: KdfConfig,
     now: u64,
     rng: &mut impl TryCryptoRng,
@@ -69,7 +68,7 @@ pub fn create_vault(
     let kdf = KdfParams::from_config(salt, config);
     kdf.validate()?;
 
-    let kek = derive_kek(master_password, device_secret, vault_id, &kdf)?;
+    let kek = derive_kek(master_password, vault_id, &kdf)?;
     let dek = Zeroizing::new(random_array::<KEY_BYTES>(rng)?);
     let wrapped_dek = wrap_dek(&kek, &dek, vault_id, rng)?;
 
@@ -137,19 +136,13 @@ fn validate_new_master_password(master_password: &[u8]) -> Result<(), VaultError
 /// decrypted-container validation fails.
 pub fn unlock_vault(
     master_password: &[u8],
-    device_secret: &[u8; KEY_BYTES],
     metadata: &VaultMetaV1,
     slot: &EncryptedVaultSlotV1,
 ) -> Result<UnlockedVault, VaultError> {
     metadata.validate()?;
     slot.validate(metadata.vault_id)?;
 
-    let kek = derive_kek(
-        master_password,
-        device_secret,
-        metadata.vault_id,
-        &metadata.kdf,
-    )?;
+    let kek = derive_kek(master_password, metadata.vault_id, &metadata.kdf)?;
     let dek = unwrap_dek(&kek, &metadata.wrapped_dek, metadata.vault_id)?;
     let container = decrypt_container(&dek, slot)?;
     if container.created_at != metadata.created_at {

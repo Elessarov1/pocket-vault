@@ -7,7 +7,6 @@ use vault_core::{
 };
 
 const PASSWORD: &[u8] = b"correct horse battery staple";
-const DEVICE_SECRET: [u8; 32] = [0x5a; 32];
 
 fn config() -> KdfConfig {
     KdfConfig {
@@ -52,7 +51,7 @@ fn tamper_ciphertext(encoded_slot: &str) -> String {
 #[test]
 fn initialize_open_and_alternating_save_roundtrip() {
     let mut source = rng(10);
-    let mut created = create_vault(PASSWORD, &DEVICE_SECRET, config(), 10, &mut source).unwrap();
+    let mut created = create_vault(PASSWORD, config(), 10, &mut source).unwrap();
     let mut repository = TwoSlotRepository::new(MemoryStorage::default());
     repository.initialize(&created).unwrap();
 
@@ -69,7 +68,7 @@ fn initialize_open_and_alternating_save_roundtrip() {
     assert_eq!(created.unlocked.persisted_slot(), SlotId::A);
     assert_eq!(created.unlocked.generation(), 2);
 
-    let opened = repository.open(PASSWORD, &DEVICE_SECRET).unwrap();
+    let opened = repository.open(PASSWORD).unwrap();
     assert!(!opened.active_pointer_repaired);
     assert_eq!(opened.vault.generation(), 2);
     assert_eq!(opened.vault.entries().len(), 1);
@@ -79,7 +78,7 @@ fn initialize_open_and_alternating_save_roundtrip() {
 #[test]
 fn initialize_refuses_to_overwrite_an_existing_vault() {
     let mut source = rng(16);
-    let created = create_vault(PASSWORD, &DEVICE_SECRET, config(), 10, &mut source).unwrap();
+    let created = create_vault(PASSWORD, config(), 10, &mut source).unwrap();
     let mut repository = TwoSlotRepository::new(MemoryStorage::default());
     repository.initialize(&created).unwrap();
     let original_metadata = repository.storage().raw(META_KEY).unwrap().to_owned();
@@ -97,7 +96,7 @@ fn initialize_refuses_to_overwrite_an_existing_vault() {
 #[test]
 fn corrupt_active_slot_falls_back_and_repairs_pointer() {
     let mut source = rng(11);
-    let mut created = create_vault(PASSWORD, &DEVICE_SECRET, config(), 10, &mut source).unwrap();
+    let mut created = create_vault(PASSWORD, config(), 10, &mut source).unwrap();
     let mut repository = TwoSlotRepository::new(MemoryStorage::default());
     repository.initialize(&created).unwrap();
     add_demo_entry(&mut created.unlocked, &mut source);
@@ -108,7 +107,7 @@ fn corrupt_active_slot_falls_back_and_repairs_pointer() {
         .storage_mut()
         .insert_raw(SLOT_B_KEY, tamper_ciphertext(&slot_b));
 
-    let opened = repository.open(PASSWORD, &DEVICE_SECRET).unwrap();
+    let opened = repository.open(PASSWORD).unwrap();
     assert!(opened.active_pointer_repaired);
     assert_eq!(opened.vault.persisted_slot(), SlotId::A);
     assert_eq!(opened.vault.generation(), 0);
@@ -123,7 +122,7 @@ fn corrupt_active_slot_falls_back_and_repairs_pointer() {
 #[test]
 fn completed_slot_is_recovered_when_pointer_write_was_interrupted() {
     let mut source = rng(12);
-    let mut created = create_vault(PASSWORD, &DEVICE_SECRET, config(), 10, &mut source).unwrap();
+    let mut created = create_vault(PASSWORD, config(), 10, &mut source).unwrap();
     let mut repository = TwoSlotRepository::new(MemoryStorage::default());
     repository.initialize(&created).unwrap();
     add_demo_entry(&mut created.unlocked, &mut source);
@@ -135,7 +134,7 @@ fn completed_slot_is_recovered_when_pointer_write_was_interrupted() {
     );
     assert_eq!(created.unlocked.generation(), 0);
 
-    let opened = repository.open(PASSWORD, &DEVICE_SECRET).unwrap();
+    let opened = repository.open(PASSWORD).unwrap();
     assert!(opened.active_pointer_repaired);
     assert_eq!(opened.vault.persisted_slot(), SlotId::B);
     assert_eq!(opened.vault.generation(), 1);
@@ -145,7 +144,7 @@ fn completed_slot_is_recovered_when_pointer_write_was_interrupted() {
 #[test]
 fn slot_write_failure_preserves_previous_slot() {
     let mut source = rng(13);
-    let mut created = create_vault(PASSWORD, &DEVICE_SECRET, config(), 10, &mut source).unwrap();
+    let mut created = create_vault(PASSWORD, config(), 10, &mut source).unwrap();
     let mut repository = TwoSlotRepository::new(MemoryStorage::default());
     repository.initialize(&created).unwrap();
     add_demo_entry(&mut created.unlocked, &mut source);
@@ -155,7 +154,7 @@ fn slot_write_failure_preserves_previous_slot() {
         repository.save(&mut created.unlocked, &mut source),
         Err(VaultError::Storage(StorageError::WriteFailed))
     );
-    let opened = repository.open(PASSWORD, &DEVICE_SECRET).unwrap();
+    let opened = repository.open(PASSWORD).unwrap();
     assert!(!opened.active_pointer_repaired);
     assert_eq!(opened.vault.generation(), 0);
     assert!(opened.vault.entries().is_empty());
@@ -164,7 +163,7 @@ fn slot_write_failure_preserves_previous_slot() {
 #[test]
 fn clear_removes_all_pocket_vault_keys() {
     let mut source = rng(14);
-    let created = create_vault(PASSWORD, &DEVICE_SECRET, config(), 10, &mut source).unwrap();
+    let created = create_vault(PASSWORD, config(), 10, &mut source).unwrap();
     let mut repository = TwoSlotRepository::new(MemoryStorage::default());
     repository.initialize(&created).unwrap();
     repository.clear_device_storage().unwrap();
@@ -177,7 +176,7 @@ fn clear_removes_all_pocket_vault_keys() {
 #[test]
 fn initialization_does_not_publish_metadata_before_the_first_slot() {
     let mut source = rng(15);
-    let created = create_vault(PASSWORD, &DEVICE_SECRET, config(), 10, &mut source).unwrap();
+    let created = create_vault(PASSWORD, config(), 10, &mut source).unwrap();
     let mut storage = MemoryStorage::default();
     storage.fail_next_set(META_KEY);
     let mut repository = TwoSlotRepository::new(storage);
@@ -189,7 +188,7 @@ fn initialization_does_not_publish_metadata_before_the_first_slot() {
     assert!(repository.storage().raw(SLOT_A_KEY).is_some());
     assert!(repository.storage().raw(META_KEY).is_none());
     assert!(matches!(
-        repository.open(PASSWORD, &DEVICE_SECRET),
+        repository.open(PASSWORD),
         Err(VaultError::Uninitialized)
     ));
 }

@@ -5,7 +5,6 @@ use zeroize::Zeroizing;
 
 use crate::bridge::{
     BridgeError, CreateBundle, OpenBundle, SaveBundle, StorageSnapshot, VaultBridge,
-    generate_device_secret_envelope, validate_device_secret_envelope,
 };
 
 struct BrowserCryptoRng;
@@ -36,39 +35,26 @@ pub struct WasmVaultSession {
 #[wasm_bindgen(js_class = VaultSession)]
 impl WasmVaultSession {
     #[wasm_bindgen(js_name = create)]
-    pub fn create(
-        master_password: String,
-        device_secret_envelope: String,
-        now: f64,
-    ) -> Result<WasmCreateBundle, JsValue> {
+    pub fn create(master_password: String, now: f64) -> Result<WasmCreateBundle, JsValue> {
         let master_password = Zeroizing::new(master_password);
-        let device_secret_envelope = Zeroizing::new(device_secret_envelope);
         let mut rng = BrowserCryptoRng;
-        VaultBridge::create(
-            master_password.as_bytes(),
-            &device_secret_envelope,
-            parse_timestamp(now)?,
-            &mut rng,
-        )
-        .map(WasmCreateBundle::new)
-        .map_err(to_js_error)
+        VaultBridge::create(master_password.as_bytes(), parse_timestamp(now)?, &mut rng)
+            .map(WasmCreateBundle::new)
+            .map_err(to_js_error)
     }
 
     #[wasm_bindgen(js_name = open)]
     #[allow(clippy::similar_names, clippy::too_many_arguments)]
     pub fn open(
         master_password: String,
-        device_secret_envelope: String,
         metadata_json: Option<String>,
         slot_a_json: Option<String>,
         slot_b_json: Option<String>,
         active_pointer_json: Option<String>,
     ) -> Result<WasmOpenBundle, JsValue> {
         let master_password = Zeroizing::new(master_password);
-        let device_secret_envelope = Zeroizing::new(device_secret_envelope);
         VaultBridge::open(
             master_password.as_bytes(),
-            &device_secret_envelope,
             StorageSnapshot {
                 metadata_json,
                 slot_a_json,
@@ -296,16 +282,6 @@ impl WasmSaveBundle {
     pub fn active_pointer_json(&self) -> String {
         self.inner.active_pointer_json.clone()
     }
-}
-
-#[wasm_bindgen(js_name = generateDeviceSecretEnvelope)]
-pub fn generate_device_secret() -> Result<String, JsValue> {
-    generate_device_secret_envelope(&mut BrowserCryptoRng).map_err(to_js_error)
-}
-
-#[wasm_bindgen(js_name = validateDeviceSecretEnvelope)]
-pub fn validate_device_secret(value: &str) -> Result<(), JsValue> {
-    validate_device_secret_envelope(value).map_err(to_js_error)
 }
 
 fn parse_timestamp(value: f64) -> Result<u64, JsValue> {

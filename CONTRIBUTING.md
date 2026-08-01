@@ -1,7 +1,7 @@
 # Contributing
 
 Bug reports and security reports are welcome through the repository issue
-tracker. Do not include real passwords, device secrets, bot tokens, or other
+tracker. Do not include real passwords, bot tokens, or other
 sensitive data in reports.
 
 Pocket Vault uses a source-available public license and may also be offered

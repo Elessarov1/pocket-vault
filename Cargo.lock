@@ -510,7 +510,6 @@ dependencies = [
 name = "vault-wasm"
 version = "0.1.0"
 dependencies = [
- "base64",
  "getrandom",
  "rand_chacha",
  "rand_core 0.10.1",

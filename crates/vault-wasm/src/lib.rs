@@ -9,7 +9,4 @@ mod bridge;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
-pub use bridge::{
-    BridgeError, CreateBundle, OpenBundle, SaveBundle, StorageSnapshot, VaultBridge,
-    generate_device_secret_envelope, validate_device_secret_envelope,
-};
+pub use bridge::{BridgeError, CreateBundle, OpenBundle, SaveBundle, StorageSnapshot, VaultBridge};

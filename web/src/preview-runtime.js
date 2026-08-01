@@ -1,14 +1,12 @@
 class MemoryCallbackStorage {
-  constructor({ secure = false } = {}) {
+  constructor() {
     this.values = new Map();
-    this.secure = secure;
   }
 
   getItem(key, callback) {
     queueMicrotask(() => {
       const value = this.values.get(key) ?? null;
-      if (this.secure) callback(null, value, false);
-      else callback(null, value);
+      callback(null, value);
     });
   }
 
@@ -26,7 +24,6 @@ class MemoryCallbackStorage {
 export class PreviewWebApp {
   constructor() {
     this.DeviceStorage = new MemoryCallbackStorage();
-    this.SecureStorage = new MemoryCallbackStorage({ secure: true });
     this.events = new Map();
     this.colorScheme = "light";
   }

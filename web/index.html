@@ -156,7 +156,7 @@
             </span>
             <h3 id="security-sheet-title">Как защищены записи</h3>
             <p>Все поля шифруются на устройстве до сохранения. В локальном хранилище Telegram остаётся только шифротекст.</p>
-            <p>Мастер-пароль не сохраняется и не отправляется Telegram или разработчику.</p>
+            <p>Мастер-пароль не сохраняется и не отправляется Telegram или разработчику. Используйте длинную уникальную фразу.</p>
             <button class="button button--primary button--full" type="button" data-close-sheet>Понятно</button>
           </section>
         </div>
@@ -224,7 +224,7 @@
                 <svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3m-8 0 1 14h8l1-14M10 11v6m4-6v6"/></svg>
               </span>
               <h3>Удалить без восстановления?</h3>
-              <p>Введите <strong>УДАЛИТЬ</strong>, чтобы заменить локальный ключ и стереть записи. Проверка владельца не выполняется.</p>
+              <p>Введите <strong>УДАЛИТЬ</strong>, чтобы стереть локальные записи. Проверка владельца не выполняется.</p>
               <div class="field">
                 <label for="forgot-confirmation-word">Слово подтверждения</label>
                 <input id="forgot-confirmation-word" type="text" autocomplete="off" placeholder="УДАЛИТЬ">
@@ -428,7 +428,7 @@
         <div class="settings-group danger-group">
           <p class="group-label">Опасная зона</p>
           <button class="settings-row settings-row--danger" type="button" data-go="destroy">
-            <span><strong>Уничтожить хранилище</strong><small>Удалить локальный ключ и все записи</small></span>
+            <span><strong>Уничтожить хранилище</strong><small>Удалить все локальные записи</small></span>
             <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
           </button>
         </div>
@@ -453,7 +453,7 @@
           </span>
           <p class="eyebrow">Необратимое действие</p>
           <h2>Уничтожить хранилище?</h2>
-          <p>Локальный ключ будет заменён, а все записи удалены с этого устройства.</p>
+          <p>Все записи будут удалены с этого устройства.</p>
         </div>
 
         <div class="consequence-list">
@@ -485,13 +485,13 @@
           <div class="phone-warning" aria-hidden="true">
             <svg viewBox="0 0 64 64"><rect x="14" y="5" width="36" height="54" rx="9"/><path d="M27 11h10M29 52h6"/><circle cx="47" cy="43" r="11"/><path d="M47 38v6m0 4v.2"/></svg>
           </div>
-          <p class="eyebrow">Доступно на iOS и Android</p>
-          <h2>Защищённое хранилище недоступно.</h2>
-          <p>Откройте Pocket Vault в актуальном Telegram на Android или iOS. Этот клиент не предоставляет необходимое защищённое хранилище.</p>
+          <p class="eyebrow">Нужен актуальный Telegram</p>
+          <h2>Локальное хранилище недоступно.</h2>
+          <p>Обновите Telegram и попробуйте ещё раз. Pocket Vault требует DeviceStorage, доступный в актуальных мобильных и десктопных клиентах.</p>
           <button class="button button--primary button--full" type="button" data-check-again>Проверить ещё раз</button>
           <div class="no-fallback">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/></svg>
-            <span>Мы не используем менее безопасное запасное хранилище.</span>
+            <span>Без постоянного локального хранилища записи не создаются.</span>
           </div>
         </div>
       </section>

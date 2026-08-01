@@ -69,11 +69,9 @@ function createHarness(initialState = "uninitialized") {
 test("initial screen follows persistent vault state", async () => {
   const fresh = createHarness("uninitialized").controller;
   const locked = createHarness("locked").controller;
-  const missingKey = createHarness("missing_device_secret").controller;
 
   assert.equal((await fresh.initialize()).screen, "onboarding");
   assert.equal((await locked.initialize()).screen, "locked");
-  assert.equal((await missingKey.initialize()).screen, "locked");
 });
 
 test("create, add, inspect, update, and delete use one unlocked session", async () => {
