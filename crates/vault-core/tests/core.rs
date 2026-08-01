@@ -21,6 +21,14 @@ fn rng(seed: u8) -> ChaCha20Rng {
     ChaCha20Rng::from_seed([seed; 32])
 }
 
+#[test]
+fn default_kdf_profile_matches_mobile_recommendation() {
+    let config = KdfConfig::default();
+    assert_eq!(config.memory_kib, 19_456);
+    assert_eq!(config.iterations, 2);
+    assert_eq!(config.parallelism, 1);
+}
+
 #[derive(Debug)]
 struct FailingRandom;
 

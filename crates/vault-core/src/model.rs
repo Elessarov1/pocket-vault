@@ -207,10 +207,10 @@ impl Default for KdfConfig {
 }
 
 impl KdfParams {
-    /// Mobile `WebView` profile. Existing vaults keep using the parameters
+    /// OWASP mobile-friendly Argon2id profile. Vaults keep using the parameters
     /// serialized in their metadata.
-    pub const RECOMMENDED_MEMORY_KIB: u32 = 32_768;
-    pub const RECOMMENDED_ITERATIONS: u32 = 3;
+    pub const RECOMMENDED_MEMORY_KIB: u32 = 19_456;
+    pub const RECOMMENDED_ITERATIONS: u32 = 2;
     pub const RECOMMENDED_PARALLELISM: u32 = 1;
     pub const OUTPUT_BYTES: u32 = 32;
 
@@ -238,7 +238,7 @@ impl KdfParams {
     /// Returns [`VaultError::InvalidKdfParameters`] for unsupported or
     /// resource-exhausting values.
     pub fn validate(&self) -> Result<(), VaultError> {
-        if !(32_768..=262_144).contains(&self.memory_kib) {
+        if !(19_456..=262_144).contains(&self.memory_kib) {
             return Err(VaultError::InvalidKdfParameters(
                 "memoryKiB is out of bounds",
             ));
