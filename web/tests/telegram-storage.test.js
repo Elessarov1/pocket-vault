@@ -43,3 +43,21 @@ test("adapter rejects a callback that never arrives", async () => {
   const storage = new TelegramDeviceStorage(webApp.DeviceStorage, { timeoutMs: 5 });
   await assert.rejects(storage.get("key"), { code: "timeout" });
 });
+
+test("mutations use verified readback when optional callbacks never arrive", async () => {
+  const webApp = new MockWebApp();
+  const device = new TelegramDeviceStorage(webApp.DeviceStorage);
+  const secure = new TelegramSecureStorage(webApp.SecureStorage);
+
+  webApp.DeviceStorage.skipNextCallback("setItem");
+  await device.setVerified("vault_meta_v1", "ciphertext");
+  assert.equal(await device.get("vault_meta_v1"), "ciphertext");
+
+  webApp.SecureStorage.skipNextCallback("setItem");
+  await secure.setVerified("device_secret_v1", "secret");
+  assert.equal((await secure.get("device_secret_v1")).value, "secret");
+
+  webApp.DeviceStorage.skipNextCallback("removeItem");
+  await device.removeVerified("vault_meta_v1");
+  assert.equal(await device.get("vault_meta_v1"), null);
+});

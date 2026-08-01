@@ -1783,7 +1783,8 @@ svg {
 
 body.runtime-telegram .prototype-layout {
   display: block;
-  min-height: 100dvh;
+  min-height: 0;
+  height: var(--tg-viewport-height, 100dvh);
 }
 
 body.runtime-telegram .review-panel,
@@ -1795,21 +1796,24 @@ body.runtime-telegram .preview-stage::before {
 }
 
 body.runtime-telegram .preview-stage {
-  min-height: 100dvh;
+  min-height: 0;
+  height: var(--tg-viewport-height, 100dvh);
   padding: 0;
 }
 
 body.runtime-telegram .device-shell {
   width: 100%;
   max-width: none;
-  height: 100dvh;
+  height: var(--tg-viewport-height, 100dvh);
   border: 0;
   border-radius: 0;
   box-shadow: none;
 }
 
 body.runtime-telegram .app-screen {
-  height: 100dvh;
+  height: var(--tg-viewport-height, 100dvh);
+  scroll-padding-block: 24px;
+  overscroll-behavior: contain;
 }
 
 /* iOS zooms a WebView when a focused form control renders below 16px. */

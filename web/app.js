@@ -369,12 +369,13 @@ function showError(error) {
   const fallback = storageFailure
     ? "Не удалось сохранить данные в Telegram"
     : "Операция не выполнена";
+  const diagnostic = error?.operation ? `${error.operation}:${code}` : String(code);
   console.error("Pocket Vault operation failed", {
     name: error?.name ?? typeof error,
     code: String(code),
     operation: error?.operation ?? null,
   });
-  showToast(messages[code] ?? `${fallback} · Код: ${String(code).slice(0, 48)}`);
+  showToast(messages[code] ?? `${fallback} · Код: ${diagnostic.slice(0, 64)}`);
 }
 
 function togglePassword(button) {
@@ -521,6 +522,25 @@ function bindLifecycle() {
   });
 }
 
+function bindKeyboardAvoidance() {
+  const revealActiveControl = () => {
+    if (runtime?.mode !== "telegram") return;
+    const active = document.activeElement;
+    if (!active?.matches("input, textarea, select")) return;
+    active.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  };
+
+  document.addEventListener("focusin", (event) => {
+    if (!event.target?.matches?.("input, textarea, select")) return;
+    setTimeout(revealActiveControl, 150);
+    setTimeout(revealActiveControl, 450);
+  });
+  globalThis.visualViewport?.addEventListener("resize", revealActiveControl, {
+    passive: true,
+  });
+  runtime.webApp.onEvent?.("viewportChanged", revealActiveControl);
+}
+
 function formatEntryCount(count) {
   const mod100 = count % 100;
   const mod10 = count % 10;
@@ -570,6 +590,7 @@ async function boot() {
   controller = new VaultAppController({ persistence: runtime.persistence });
   controller.subscribe((state) => renderScreen(state.screen));
   bindLifecycle();
+  bindKeyboardAvoidance();
 
   if (runtime.mode === "preview") {
     globalThis.__POCKET_VAULT_PREVIEW__ = { controller, webApp: runtime.webApp };

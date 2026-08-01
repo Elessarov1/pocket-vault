@@ -1,4 +1,5 @@
 const DEFAULT_TIMEOUT_MS = 10_000;
+const VERIFY_INTERVAL_MS = 50;
 
 export class TelegramStorageError extends Error {
   constructor(code, operation) {
@@ -17,7 +18,13 @@ export class TelegramDeviceStorage {
 
   async get(key) {
     validateKey(key);
-    const [value] = await invoke(this.storage, "getItem", [key], this.timeoutMs);
+    const [value] = await invoke(
+      this.storage,
+      "getItem",
+      [key],
+      this.timeoutMs,
+      "device.getItem",
+    );
     if (value !== null && typeof value !== "string") {
       throw new TelegramStorageError("invalid_response", "device.getItem");
     }
@@ -27,29 +34,36 @@ export class TelegramDeviceStorage {
   async set(key, value) {
     validateKey(key);
     validateValue(value);
-    const [stored] = await invoke(this.storage, "setItem", [key, value], this.timeoutMs);
-    if (stored !== true) {
-      throw new TelegramStorageError("write_not_confirmed", "device.setItem");
-    }
+    await mutateAndVerify({
+      storage: this.storage,
+      method: "setItem",
+      args: [key, value],
+      operation: "device.setItem",
+      timeoutMs: this.timeoutMs,
+      unconfirmedCode: "write_not_confirmed",
+      verify: async () => (await this.get(key)) === value,
+    });
   }
 
   async setVerified(key, value) {
     await this.set(key, value);
-    if ((await this.get(key)) !== value) {
-      throw new TelegramStorageError("readback_mismatch", "device.setItem");
-    }
   }
 
   async remove(key) {
     validateKey(key);
-    await invoke(this.storage, "removeItem", [key], this.timeoutMs);
+    await mutateAndVerify({
+      storage: this.storage,
+      method: "removeItem",
+      args: [key],
+      operation: "device.removeItem",
+      timeoutMs: this.timeoutMs,
+      unconfirmedCode: "remove_not_confirmed",
+      verify: async () => (await this.get(key)) === null,
+    });
   }
 
   async removeVerified(key) {
     await this.remove(key);
-    if ((await this.get(key)) !== null) {
-      throw new TelegramStorageError("remove_not_confirmed", "device.removeItem");
-    }
   }
 }
 
@@ -66,6 +80,7 @@ export class TelegramSecureStorage {
       "getItem",
       [key],
       this.timeoutMs,
+      "secure.getItem",
     );
     if (value !== null && typeof value !== "string") {
       throw new TelegramStorageError("invalid_response", "secure.getItem");
@@ -76,35 +91,36 @@ export class TelegramSecureStorage {
   async set(key, value) {
     validateKey(key);
     validateValue(value);
-    const [stored] = await invoke(this.storage, "setItem", [key, value], this.timeoutMs);
-    if (stored !== true) {
-      throw new TelegramStorageError("write_not_confirmed", "secure.setItem");
-    }
+    await mutateAndVerify({
+      storage: this.storage,
+      method: "setItem",
+      args: [key, value],
+      operation: "secure.setItem",
+      timeoutMs: this.timeoutMs,
+      unconfirmedCode: "write_not_confirmed",
+      verify: async () => (await this.get(key)).value === value,
+    });
   }
 
   async setVerified(key, value) {
     await this.set(key, value);
-    const readback = await this.get(key);
-    if (readback.value !== value) {
-      throw new TelegramStorageError("readback_mismatch", "secure.setItem");
-    }
   }
 }
 
-function invoke(storage, method, args, timeoutMs) {
+function invoke(storage, method, args, timeoutMs, operation = method) {
   return new Promise((resolve, reject) => {
     let settled = false;
     const timer = setTimeout(() => {
       if (settled) return;
       settled = true;
-      reject(new TelegramStorageError("timeout", method));
+      reject(new TelegramStorageError("timeout", operation));
     }, timeoutMs);
     const callback = (error, ...values) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       if (error !== null && error !== undefined) {
-        reject(new TelegramStorageError("callback_error", method));
+        reject(new TelegramStorageError("callback_error", operation));
         return;
       }
       resolve(values);
@@ -116,9 +132,50 @@ function invoke(storage, method, args, timeoutMs) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      reject(new TelegramStorageError("call_failed", method));
+      reject(new TelegramStorageError("call_failed", operation));
     }
   });
+}
+
+async function mutateAndVerify({
+  storage,
+  method,
+  args,
+  operation,
+  timeoutMs,
+  unconfirmedCode,
+  verify,
+}) {
+  let callbackFailure = null;
+  try {
+    storage[method](...args, (error, confirmed) => {
+      if (error !== null && error !== undefined) {
+        callbackFailure = new TelegramStorageError("callback_error", operation);
+      } else if (confirmed === false) {
+        callbackFailure = new TelegramStorageError(unconfirmedCode, operation);
+      }
+    });
+  } catch {
+    throw new TelegramStorageError("call_failed", operation);
+  }
+
+  const deadline = Date.now() + timeoutMs;
+  while (true) {
+    if (callbackFailure) throw callbackFailure;
+    const verified = await verify();
+    if (callbackFailure) throw callbackFailure;
+    if (verified) return;
+
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) {
+      throw new TelegramStorageError("timeout", operation);
+    }
+    await delay(Math.min(VERIFY_INTERVAL_MS, remaining));
+  }
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function validateKey(key) {
