@@ -74,7 +74,9 @@ Localhost enables a safe preview runtime. It uses the same WASM module,
 controller, and persistence protocol, but its callback storage exists only in
 the current tab's memory and is cleared on reload. This fallback is disabled in
 Telegram: the production application requires Bot API 9.0 and uses only
-`DeviceStorage` and `SecureStorage`.
+`DeviceStorage` and `SecureStorage`. The current production target is Telegram
+for iOS and Android; desktop clients that return `UNSUPPORTED` for
+`SecureStorage` fail closed instead of using a weaker fallback.
 
 ## Deployment
 

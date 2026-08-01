@@ -2,11 +2,12 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 const VERIFY_INTERVAL_MS = 50;
 
 export class TelegramStorageError extends Error {
-  constructor(code, operation) {
+  constructor(code, operation, { nativeCode = null } = {}) {
     super(`${operation} failed`);
     this.name = "TelegramStorageError";
     this.code = code;
     this.operation = operation;
+    this.nativeCode = nativeCode;
   }
 }
 
@@ -120,7 +121,7 @@ function invoke(storage, method, args, timeoutMs, operation = method) {
       settled = true;
       clearTimeout(timer);
       if (error !== null && error !== undefined) {
-        reject(new TelegramStorageError("callback_error", operation));
+        reject(normalizeCallbackError(error, operation));
         return;
       }
       resolve(values);
@@ -150,7 +151,7 @@ async function mutateAndVerify({
   try {
     storage[method](...args, (error, confirmed) => {
       if (error !== null && error !== undefined) {
-        callbackFailure = new TelegramStorageError("callback_error", operation);
+        callbackFailure = normalizeCallbackError(error, operation);
       } else if (confirmed === false) {
         callbackFailure = new TelegramStorageError(unconfirmedCode, operation);
       }
@@ -172,6 +173,14 @@ async function mutateAndVerify({
     }
     await delay(Math.min(VERIFY_INTERVAL_MS, remaining));
   }
+}
+
+function normalizeCallbackError(error, operation) {
+  const nativeCode = String(error?.error ?? error?.message ?? error);
+  const code = nativeCode.toUpperCase() === "UNSUPPORTED"
+    ? "unsupported_storage"
+    : "callback_error";
+  return new TelegramStorageError(code, operation, { nativeCode });
 }
 
 function delay(milliseconds) {

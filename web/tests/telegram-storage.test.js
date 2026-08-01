@@ -37,6 +37,18 @@ test("secure adapter reports restorability without invoking restoreItem", async 
   assert.equal(webApp.calls.some((call) => call.startsWith("secure.restore:")), false);
 });
 
+test("secure adapter preserves Telegram's unsupported-platform error", async () => {
+  const webApp = new MockWebApp();
+  const storage = new TelegramSecureStorage(webApp.SecureStorage);
+  webApp.SecureStorage.failNext("getItem", "UNSUPPORTED");
+
+  await assert.rejects(storage.get("device_secret_v1"), {
+    code: "unsupported_storage",
+    operation: "secure.getItem",
+    nativeCode: "UNSUPPORTED",
+  });
+});
+
 test("adapter rejects a callback that never arrives", async () => {
   const webApp = new MockWebApp();
   webApp.DeviceStorage.skipNextCallback("getItem");

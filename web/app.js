@@ -357,6 +357,7 @@ function showError(error) {
     vault_too_large: "Хранилище достигло допустимого размера",
     missing_device_secret: "Локальный ключ недоступен — можно только уничтожить хранилище",
     unsupported_telegram: "Нужна новая версия Telegram",
+    unsupported_storage: "Защищённое хранилище недоступно на этом устройстве",
     invalid_kdf_parameters: "Параметры защиты хранилища не поддерживаются",
     random_unavailable: "Не удалось получить безопасную случайность. Перезапустите Telegram",
     vault_operation_failed: "Не удалось выполнить шифрование на этом устройстве",
@@ -374,6 +375,7 @@ function showError(error) {
     name: error?.name ?? typeof error,
     code: String(code),
     operation: error?.operation ?? null,
+    nativeCode: error?.nativeCode ?? null,
   });
   showToast(messages[code] ?? `${fallback} · Код: ${diagnostic.slice(0, 64)}`);
 }
@@ -602,7 +604,7 @@ async function boot() {
   try {
     await controller.initialize();
   } catch (error) {
-    showError(error);
+    if (error?.code !== "unsupported_storage") showError(error);
     renderScreen("unsupported");
   }
 }

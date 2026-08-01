@@ -14,6 +14,10 @@ node scripts/serve.mjs
 `web/src/bootstrap.js` проверяет Bot API 9.0, наличие обоих storage API,
 загружает WASM и создаёт `VaultPersistence`.
 
+Production-цель MVP — Telegram на iOS и Android. Если клиент возвращает
+`UNSUPPORTED` для SecureStorage, приложение закрывает доступ и не подменяет
+защищённое хранилище обычным browser storage.
+
 Для локального просмотра на `localhost` создаются совместимые callback-адаптеры
 в памяти. Они не используют `localStorage`, не переживают перезагрузку и никогда
 не включаются как fallback внутри Telegram.
