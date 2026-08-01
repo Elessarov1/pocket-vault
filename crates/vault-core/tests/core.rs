@@ -171,6 +171,22 @@ fn slot_ciphertext_nonce_and_aad_tampering_are_rejected() {
 }
 
 #[test]
+fn kdf_memory_field_uses_documented_name() {
+    let mut source = rng(11);
+    let created = create_vault(
+        PASSWORD,
+        &DEVICE_SECRET,
+        test_config(),
+        1_785_450_000,
+        &mut source,
+    )
+    .unwrap();
+    let json = serde_json::to_string(&created.metadata).unwrap();
+    assert!(json.contains("\"memoryKiB\":32768"));
+    assert!(!json.contains("\"memoryKib\""));
+}
+
+#[test]
 fn crud_and_generation_roundtrip() {
     let mut source = rng(5);
     let mut created =

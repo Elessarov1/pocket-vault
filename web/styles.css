@@ -1812,6 +1812,13 @@ body.runtime-telegram .app-screen {
   height: 100dvh;
 }
 
+/* iOS zooms a WebView when a focused form control renders below 16px. */
+body.runtime-telegram input,
+body.runtime-telegram textarea,
+body.runtime-telegram select {
+  font-size: 16px;
+}
+
 .privacy-page {
   min-height: 100vh;
   padding: 40px 20px;

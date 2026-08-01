@@ -182,6 +182,7 @@ impl SlotId {
 pub struct KdfParams {
     pub algorithm: KdfAlgorithm,
     pub salt: EncodedBytes,
+    #[serde(rename = "memoryKiB")]
     pub memory_kib: u32,
     pub iterations: u32,
     pub parallelism: u32,
@@ -206,7 +207,9 @@ impl Default for KdfConfig {
 }
 
 impl KdfParams {
-    pub const RECOMMENDED_MEMORY_KIB: u32 = 65_536;
+    /// Mobile `WebView` profile. Existing vaults keep using the parameters
+    /// serialized in their metadata.
+    pub const RECOMMENDED_MEMORY_KIB: u32 = 32_768;
     pub const RECOMMENDED_ITERATIONS: u32 = 3;
     pub const RECOMMENDED_PARALLELISM: u32 = 1;
     pub const OUTPUT_BYTES: u32 = 32;

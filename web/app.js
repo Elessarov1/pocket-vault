@@ -357,9 +357,24 @@ function showError(error) {
     vault_too_large: "Хранилище достигло допустимого размера",
     missing_device_secret: "Локальный ключ недоступен — можно только уничтожить хранилище",
     unsupported_telegram: "Нужна новая версия Telegram",
+    invalid_kdf_parameters: "Параметры защиты хранилища не поддерживаются",
+    random_unavailable: "Не удалось получить безопасную случайность. Перезапустите Telegram",
+    vault_operation_failed: "Не удалось выполнить шифрование на этом устройстве",
   };
-  const storageFailure = String(code).includes("storage") || String(code).includes("failed") || String(code).includes("readback");
-  showToast(messages[code] ?? (storageFailure ? "Не удалось сохранить данные. Хранилище заблокировано." : "Операция не выполнена"));
+  const storageFailure =
+    error?.name === "TelegramStorageError" ||
+    String(code).includes("storage") ||
+    String(code).includes("failed") ||
+    String(code).includes("readback");
+  const fallback = storageFailure
+    ? "Не удалось сохранить данные в Telegram"
+    : "Операция не выполнена";
+  console.error("Pocket Vault operation failed", {
+    name: error?.name ?? typeof error,
+    code: String(code),
+    operation: error?.operation ?? null,
+  });
+  showToast(messages[code] ?? `${fallback} · Код: ${String(code).slice(0, 48)}`);
 }
 
 function togglePassword(button) {

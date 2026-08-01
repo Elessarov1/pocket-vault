@@ -22,6 +22,10 @@ const controller = new VaultAppController({ persistence, now: () => timestamp++ 
 await controller.initialize();
 assert.equal(controller.snapshot().screen, "onboarding");
 await controller.create("следуй-за-белым-кроликом-домой");
+assert.equal(
+  JSON.parse(webApp.DeviceStorage.values.get("vault_meta_v1")).kdf.memoryKiB,
+  32_768,
+);
 controller.beginEdit();
 await controller.saveEntry({ title: "Почта", secret: "M0cha-Pine-47!", description: "Основной аккаунт" });
 

@@ -40,7 +40,7 @@ Storage и никогда не попадает в Device Storage.
   "kdf": {
     "algorithm": "argon2id",
     "salt": "<16..64 bytes base64url>",
-    "memoryKiB": 65536,
+    "memoryKiB": 32768,
     "iterations": 3,
     "parallelism": 1,
     "outputBytes": 32
