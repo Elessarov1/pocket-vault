@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f2f0e9">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://telegram.org; object-src 'none'; base-uri 'none'; form-action 'none'"
+    >
+    <title>Pocket Vault</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+    <script src="app.js" type="module"></script>
+  </head>
+  <body>
+    <div class="prototype-layout">
+      <aside class="review-panel" aria-label="Навигация по прототипу">
+        <div class="review-brand">
+          <span class="brand-mark brand-mark--small" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
+          </span>
+          <div>
+            <strong>Pocket Vault</strong>
+            <span>Черновик интерфейса · 01</span>
+          </div>
+        </div>
+
+        <div class="review-intro">
+          <p class="eyebrow">Направление</p>
+          <h1>Спокойный, честный, локальный.</h1>
+          <p>Пароли — основной сценарий. Коды и заметки остаются рядом, но не перетягивают на себя смысл продукта.</p>
+        </div>
+
+        <nav class="screen-list" id="screen-list">
+          <p class="review-label">Экраны</p>
+          <button type="button" data-screen="onboarding"><span>01</span> Создание</button>
+          <button type="button" data-screen="locked"><span>02</span> Вход</button>
+          <button type="button" data-screen="vault"><span>03</span> Хранилище</button>
+          <button type="button" data-screen="detail"><span>04</span> Запись</button>
+          <button type="button" data-screen="edit"><span>05</span> Редактор</button>
+          <button type="button" data-screen="settings"><span>06</span> Настройки</button>
+          <button type="button" data-screen="destroy"><span>07</span> Уничтожение</button>
+          <button type="button" data-screen="unsupported"><span>08</span> Несовместимость</button>
+        </nav>
+
+        <div class="theme-control" aria-label="Тема прототипа">
+          <p class="review-label">Тема</p>
+          <div class="segmented">
+            <button class="is-active" type="button" data-theme-choice="light">Светлая</button>
+            <button type="button" data-theme-choice="dark">Тёмная</button>
+          </div>
+        </div>
+
+        <p class="review-note">Preview-режим хранит зашифрованные данные только в памяти вкладки — до перезагрузки.</p>
+      </aside>
+
+      <main class="preview-stage">
+        <div class="mobile-review-bar">
+          <label for="screen-picker">Экран</label>
+          <select id="screen-picker">
+            <option value="onboarding">Создание</option>
+            <option value="locked">Вход</option>
+            <option value="vault">Хранилище</option>
+            <option value="detail">Запись</option>
+            <option value="edit">Редактор</option>
+            <option value="settings">Настройки</option>
+            <option value="destroy">Уничтожение</option>
+            <option value="unsupported">Несовместимость</option>
+          </select>
+          <button type="button" class="theme-icon-button" id="mobile-theme" aria-label="Переключить тему">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42M7.06 16.94l-1.42 1.42"/><circle cx="12" cy="12" r="4"/></svg>
+          </button>
+        </div>
+
+        <section class="device-shell" aria-label="Предпросмотр мобильного приложения">
+          <div class="device-status" aria-hidden="true">
+            <span>9:41</span>
+            <div>
+              <svg viewBox="0 0 18 12"><path d="M1 10h2V8H1v2Zm4 0h2V6H5v4Zm4 0h2V3H9v7Zm4 0h2V1h-2v9Z"/></svg>
+              <svg viewBox="0 0 18 12"><path d="M1 4.5C5.2.7 12.8.7 17 4.5M4 7.2c2.8-2.5 7.2-2.5 10 0M7.2 9.7c1-1 2.6-1 3.6 0"/></svg>
+              <span class="battery"></span>
+            </div>
+          </div>
+          <div id="app-screen" class="app-screen" aria-live="polite"></div>
+          <div class="home-indicator" aria-hidden="true"></div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <template id="screen-onboarding">
+      <section class="screen screen--onboarding">
+        <header class="onboarding-header">
+          <div class="simple-brand">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
+            </span>
+            <span>Pocket Vault</span>
+          </div>
+          <button class="info-icon" type="button" data-open-sheet="security-sheet" aria-label="Как защищены данные">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="M12 10v6m0-9v.2"/></svg>
+          </button>
+        </header>
+
+        <div class="onboarding-copy">
+          <h2>Ваши пароли.<br>Только ваши.</h2>
+          <p>Храните пароли от сайтов и приложений, ключи, PIN-коды и приватные заметки на этом устройстве.</p>
+        </div>
+
+        <form class="surface-card creation-form" id="creation-form">
+          <div class="field">
+            <label for="create-password">Мастер-пароль</label>
+            <div class="input-with-action">
+              <input id="create-password" type="password" autocomplete="new-password" placeholder="Длинная фраза от 16 символов">
+              <button type="button" class="field-action" data-toggle-password="create-password">Показать</button>
+            </div>
+          </div>
+          <div class="strength" aria-live="polite">
+            <div class="strength-bars"><i></i><i></i><i></i><i></i></div>
+            <span id="strength-label">Лучше всего — 6–7 случайных слов</span>
+          </div>
+          <details class="passphrase-example">
+            <summary>
+              <span>Посмотреть пример</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            </summary>
+            <div class="passphrase-example__content">
+              <span>Пример запоминаемого формата</span>
+              <code>следуй-за-белым-кроликом</code>
+              <small>Не копируйте пример буквально — добавьте ещё 2–3 собственных случайных слова.</small>
+            </div>
+          </details>
+          <div class="field">
+            <label for="confirm-password">Повторите мастер-пароль</label>
+            <input id="confirm-password" type="password" autocomplete="new-password" placeholder="Введите ещё раз">
+          </div>
+          <label class="consent-row">
+            <input type="checkbox" id="no-recovery-confirm">
+            <span>Я понимаю: если потеряю мастер-пароль или это устройство, восстановить записи будет невозможно.</span>
+          </label>
+          <button class="button button--primary button--full" type="submit">Создать хранилище</button>
+        </form>
+
+        <div class="privacy-line"><span></span>Локальное шифрование · нет облака · нет восстановления</div>
+
+        <div class="sheet-backdrop" id="security-sheet" hidden>
+          <section class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="security-sheet-title">
+            <div class="sheet-handle" aria-hidden="true"></div>
+            <button class="sheet-close" type="button" data-close-sheet aria-label="Закрыть">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+            <span class="sheet-symbol sheet-symbol--safe" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m9.2 11.8 1.8 1.8 3.8-4"/></svg>
+            </span>
+            <h3 id="security-sheet-title">Как защищены записи</h3>
+            <p>Все поля шифруются на устройстве до сохранения. В локальном хранилище Telegram остаётся только шифротекст.</p>
+            <p>Мастер-пароль не сохраняется и не отправляется Telegram или разработчику.</p>
+            <button class="button button--primary button--full" type="button" data-close-sheet>Понятно</button>
+          </section>
+        </div>
+      </section>
+    </template>
+
+    <template id="screen-locked">
+      <section class="screen screen--locked">
+        <header class="simple-brand simple-brand--centered">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
+          </span>
+          <span>Pocket Vault</span>
+        </header>
+
+        <div class="lock-hero">
+          <div class="lock-orbit" aria-hidden="true">
+            <svg viewBox="0 0 36 36"><rect x="8" y="15" width="20" height="15" rx="5"/><path d="M12.5 15v-4.2a5.5 5.5 0 0 1 11 0V15"/><circle cx="18" cy="22" r="2"/></svg>
+          </div>
+          <p class="eyebrow">Хранилище заблокировано</p>
+          <h2>С возвращением.</h2>
+          <p>Введите мастер-пароль. Он нужен при каждом новом запуске.</p>
+        </div>
+
+        <form class="unlock-form" id="unlock-form">
+          <div class="field">
+            <label for="unlock-password">Мастер-пароль</label>
+            <div class="input-with-action">
+              <input id="unlock-password" type="password" autocomplete="current-password" placeholder="Введите пароль или фразу">
+              <button type="button" class="field-action" data-toggle-password="unlock-password">Показать</button>
+            </div>
+          </div>
+          <button class="button button--primary button--full" type="submit">Открыть хранилище</button>
+          <button class="text-button" type="button" data-open-sheet="forgot-sheet">Не помню мастер-пароль</button>
+        </form>
+
+        <div class="local-footnote">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m9.2 11.8 1.8 1.8 3.8-4"/></svg>
+          <p><strong>Зашифровано на этом устройстве</strong><span>Telegram и разработчик не получают ваши пароли в открытом виде.</span></p>
+        </div>
+
+        <div class="sheet-backdrop" id="forgot-sheet" hidden>
+          <section class="bottom-sheet bottom-sheet--forgot" role="dialog" aria-modal="true" aria-labelledby="forgot-sheet-title">
+            <div class="sheet-handle" aria-hidden="true"></div>
+            <button class="sheet-close" type="button" data-close-sheet aria-label="Закрыть">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+
+            <div data-forgot-intro>
+              <span class="sheet-symbol sheet-symbol--warning" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3 2.7 20h18.6L12 3Z"/><path d="M12 9v5m0 3v.2"/></svg>
+              </span>
+              <h3 id="forgot-sheet-title">Доступ восстановить нельзя</h3>
+              <p>Без мастер-пароля записи невозможно расшифровать. Можно только удалить локальное хранилище и начать заново.</p>
+              <div class="reset-warning">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m5 5 14 14"/></svg>
+                <p><strong>Без проверки владельца</strong><span>Любой человек с доступом к этому Telegram сможет удалить хранилище, но не сможет прочитать записи.</span></p>
+              </div>
+              <button class="button button--danger button--full" type="button" data-start-unverified-reset>Перейти к удалению</button>
+              <button class="button button--ghost button--full" type="button" data-close-sheet>Отмена</button>
+            </div>
+
+            <form class="forgot-confirmation" id="forgot-reset-form" hidden>
+              <span class="sheet-symbol sheet-symbol--warning" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3m-8 0 1 14h8l1-14M10 11v6m4-6v6"/></svg>
+              </span>
+              <h3>Удалить без восстановления?</h3>
+              <p>Введите <strong>УДАЛИТЬ</strong>, чтобы заменить локальный ключ и стереть записи. Проверка владельца не выполняется.</p>
+              <div class="field">
+                <label for="forgot-confirmation-word">Слово подтверждения</label>
+                <input id="forgot-confirmation-word" type="text" autocomplete="off" placeholder="УДАЛИТЬ">
+              </div>
+              <button class="button button--danger button--full" type="submit" disabled>Удалить хранилище</button>
+              <button class="button button--ghost button--full" type="button" data-close-sheet>Отмена</button>
+            </form>
+          </section>
+        </div>
+      </section>
+    </template>
+
+    <template id="screen-vault">
+      <section class="screen screen--vault">
+        <header class="app-header">
+          <div class="compact-brand">
+            <span class="brand-mark brand-mark--small" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
+            </span>
+            <span>Pocket Vault</span>
+          </div>
+          <button class="icon-button" type="button" data-go="settings" aria-label="Открыть настройки">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+          </button>
+        </header>
+
+        <div class="vault-heading">
+          <p class="eyebrow" id="entry-count">0 записей</p>
+          <h2>Ваши секреты</h2>
+        </div>
+
+        <label class="search-box">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
+          <span class="visually-hidden">Поиск по записям</span>
+          <input id="entry-search" type="search" placeholder="Поиск по названию">
+          <kbd>⌘ K</kbd>
+        </label>
+
+        <div class="list-heading"><span>Недавние</span><button type="button" data-sort>По обновлению <b>↓</b></button></div>
+        <div class="entry-list" id="entry-list"></div>
+
+        <p class="empty-search" id="empty-search">Записей пока нет. Добавьте первый пароль или секрет.</p>
+
+        <button class="fab" type="button" data-go="edit">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          <span>Добавить</span>
+        </button>
+      </section>
+    </template>
+
+    <template id="screen-detail">
+      <section class="screen screen--detail">
+        <header class="app-header app-header--plain">
+          <button class="back-button" type="button" data-go="vault">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+            <span>Хранилище</span>
+          </button>
+          <span class="header-title">Запись</span>
+          <button class="icon-button" type="button" data-menu aria-label="Другие действия">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+          </button>
+        </header>
+
+        <div class="record-hero">
+          <span class="entry-icon entry-icon--mint entry-icon--large">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>
+          </span>
+          <h2 id="detail-title">Запись</h2>
+          <p id="detail-description"></p>
+        </div>
+
+        <div class="secret-card">
+          <div class="secret-label"><span>Пароль</span><span class="private-badge"><i></i> Скрыт</span></div>
+          <div class="secret-value" id="secret-value">••••••••••••••</div>
+          <div class="secret-actions">
+            <button type="button" data-reveal>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+              <span>Показать</span>
+            </button>
+            <button type="button" data-copy>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h2"/></svg>
+              <span>Скопировать</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="record-meta">
+          <div><span>Создано</span><strong id="detail-created">—</strong></div>
+          <div><span>Изменено</span><strong id="detail-updated">—</strong></div>
+        </div>
+
+        <div class="detail-actions">
+          <button class="button button--secondary button--full" type="button" data-go="edit">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 5 5 5L9 20H4v-5L14 5Z"/><path d="m12 7 5 5"/></svg>
+            Изменить
+          </button>
+          <button class="button button--danger-quiet button--full" type="button" data-delete-entry>Удалить запись</button>
+        </div>
+
+        <div class="sheet-backdrop" id="delete-entry-sheet" hidden>
+          <section class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-entry-title">
+            <div class="sheet-handle" aria-hidden="true"></div>
+            <button class="sheet-close" type="button" data-close-sheet aria-label="Закрыть">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+            <span class="sheet-symbol sheet-symbol--warning" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 7h14M9 7V4h6v3m-8 0 1 14h8l1-14M10 11v6m4-6v6"/></svg>
+            </span>
+            <h3 id="delete-entry-title">Удалить эту запись?</h3>
+            <p>Пароль или секрет исчезнет без возможности восстановления.</p>
+            <form id="delete-entry-form">
+              <button class="button button--danger button--full" type="submit">Удалить запись</button>
+              <button class="button button--ghost button--full" type="button" data-close-sheet>Отмена</button>
+            </form>
+          </section>
+        </div>
+      </section>
+    </template>
+
+    <template id="screen-edit">
+      <section class="screen screen--form">
+        <header class="app-header app-header--plain">
+          <button class="back-button" type="button" data-go="vault">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+            <span>Назад</span>
+          </button>
+          <span class="header-title" id="record-form-title">Новая запись</span>
+          <span class="header-spacer"></span>
+        </header>
+
+        <div class="form-intro">
+          <p class="eyebrow" id="record-form-eyebrow">Новый пароль или секрет</p>
+          <h2 id="record-form-heading">Добавьте то, что важно защитить.</h2>
+          <p>Название и описание тоже будут зашифрованы.</p>
+        </div>
+
+        <form class="record-form" id="record-form">
+          <div class="field">
+            <label for="record-title">Название <span>обязательно</span></label>
+            <input id="record-title" type="text" maxlength="200" placeholder="Например, Wi-Fi в офисе" required>
+            <small><span>0</span> / 200</small>
+          </div>
+          <div class="field">
+            <label for="record-secret">Секрет <span>обязательно</span></label>
+            <div class="input-with-action">
+              <input id="record-secret" type="password" placeholder="Пароль, ключ, PIN или код" required>
+              <button type="button" class="field-action" data-toggle-password="record-secret">Показать</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="record-description">Описание <span>необязательно</span></label>
+            <textarea id="record-description" maxlength="2000" placeholder="Где используется или что важно помнить"></textarea>
+            <small><span>0</span> / 2000</small>
+          </div>
+          <div class="encrypted-note">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            Все поля шифруются локально перед сохранением.
+          </div>
+          <button class="button button--primary button--full" type="submit">Сохранить запись</button>
+        </form>
+      </section>
+    </template>
+
+    <template id="screen-settings">
+      <section class="screen screen--settings">
+        <header class="app-header app-header--plain">
+          <button class="back-button" type="button" data-go="vault">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+            <span>Хранилище</span>
+          </button>
+          <span class="header-title">Настройки</span>
+          <span class="header-spacer"></span>
+        </header>
+
+        <div class="settings-heading">
+          <p class="eyebrow">Pocket Vault</p>
+          <h2>Настройки</h2>
+        </div>
+
+        <div class="settings-group">
+          <p class="group-label">Безопасность</p>
+          <button class="settings-row" type="button" data-go="locked">
+            <span class="settings-icon settings-icon--mint"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
+            <span><strong>Заблокировать сейчас</strong><small>Потребуется мастер-пароль</small></span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+          <div class="settings-row settings-row--static">
+            <span class="settings-icon settings-icon--blue"><svg viewBox="0 0 24 24"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m9.2 11.8 1.8 1.8 3.8-4"/></svg></span>
+            <span><strong>Локальное хранение</strong><small>Синхронизация отключена</small></span>
+            <span class="status-dot">Включено</span>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <p class="group-label">О приложении</p>
+          <div class="settings-row settings-row--static"><span>Версия</span><strong class="row-value">MVP 0.1</strong></div>
+          <button class="settings-row settings-row--link" type="button" data-source><span>Исходный код</span><svg class="external-icon" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg></button>
+          <button class="settings-row settings-row--link" type="button" data-privacy><span>Конфиденциальность</span><svg class="external-icon" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg></button>
+        </div>
+
+        <div class="settings-group danger-group">
+          <p class="group-label">Опасная зона</p>
+          <button class="settings-row settings-row--danger" type="button" data-go="destroy">
+            <span><strong>Уничтожить хранилище</strong><small>Удалить локальный ключ и все записи</small></span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <p class="settings-footer">Открытые пароли не отправляются Telegram или разработчику.<br>Нет аккаунта, сервера и резервного ключа.</p>
+      </section>
+    </template>
+
+    <template id="screen-destroy">
+      <section class="screen screen--destroy">
+        <header class="app-header app-header--plain">
+          <button class="back-button" type="button" data-go="settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+            <span>Настройки</span>
+          </button>
+          <span class="header-spacer"></span>
+        </header>
+
+        <div class="danger-hero">
+          <span class="danger-symbol" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3 2.7 20h18.6L12 3Z"/><path d="M12 9v5m0 3v.2"/></svg>
+          </span>
+          <p class="eyebrow">Необратимое действие</p>
+          <h2>Уничтожить хранилище?</h2>
+          <p>Локальный ключ будет заменён, а все записи удалены с этого устройства.</p>
+        </div>
+
+        <div class="consequence-list">
+          <div><span>01</span><p><strong>Вернуть записи не получится</strong><small>У приложения и разработчика нет резервной копии.</small></p></div>
+          <div><span>02</span><p><strong>Другие устройства не затронуты</strong><small>В MVP хранилище существует только здесь.</small></p></div>
+        </div>
+
+        <form class="destroy-form" id="destroy-form">
+          <div class="field">
+            <label for="destroy-word">Введите <strong>УДАЛИТЬ</strong></label>
+            <input id="destroy-word" type="text" autocomplete="off" placeholder="УДАЛИТЬ">
+          </div>
+          <button class="button button--danger button--full" type="submit" disabled>Уничтожить навсегда</button>
+          <button class="button button--ghost button--full" type="button" data-go="settings">Отмена</button>
+        </form>
+      </section>
+    </template>
+
+    <template id="screen-unsupported">
+      <section class="screen screen--unsupported">
+        <header class="simple-brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
+          </span>
+          <span>Pocket Vault</span>
+        </header>
+
+        <div class="unsupported-content">
+          <div class="phone-warning" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><rect x="14" y="5" width="36" height="54" rx="9"/><path d="M27 11h10M29 52h6"/><circle cx="47" cy="43" r="11"/><path d="M47 38v6m0 4v.2"/></svg>
+          </div>
+          <p class="eyebrow">Нужна новая версия Telegram</p>
+          <h2>Защищённое хранилище недоступно.</h2>
+          <p>Обновите Telegram на Android или iOS, затем откройте Pocket Vault снова.</p>
+          <button class="button button--primary button--full" type="button" data-check-again>Проверить ещё раз</button>
+          <div class="no-fallback">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/></svg>
+            <span>Мы не используем менее безопасное запасное хранилище.</span>
+          </div>
+        </div>
+      </section>
+    </template>
+  </body>
+</html>

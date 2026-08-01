@@ -1,0 +1,32 @@
+[package]
+name = "vault-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WebAssembly boundary for Pocket Vault"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+base64.workspace = true
+getrandom = { workspace = true, features = ["wasm_js"] }
+rand_core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+vault-core = { path = "../vault-core" }
+wasm-bindgen.workspace = true
+zeroize.workspace = true
+
+[dev-dependencies]
+rand_chacha = "0.10.0"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"

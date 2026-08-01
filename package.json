@@ -1,0 +1,11 @@
+{
+  "name": "pocket-vault",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:wasm": "wasm-pack build crates/vault-wasm --target web --out-dir ../../web/pkg",
+    "smoke:wasm": "node scripts/smoke-wasm.mjs",
+    "test": "node --test web/tests/*.test.js",
+    "test:js": "node --test web/tests/*.test.js"
+  }
+}
