@@ -24,19 +24,12 @@ export class VaultAppController {
   async initialize() {
     const status = await this.persistence.inspectState();
     if (status.state === "locked") {
-      const cached = await this.persistence.openCachedSession(this.now());
-      this.session = cached?.session ?? null;
-      this.authenticationExpiresAt = cached?.expiresAt ?? null;
+      this.adoptCachedSession(await this.persistence.openCachedSession(this.now()));
     }
-    const screen = status.state === "uninitialized"
-      ? "onboarding"
-      : this.session
-        ? "vault"
-        : "locked";
     if (this.session) {
-      this.refreshEntries();
-      this.setState({ screen, selectedId: null, editingId: null });
+      this.showVault();
     } else {
+      const screen = status.state === "uninitialized" ? "onboarding" : "locked";
       this.setState({ screen, entries: [], selectedId: null, editingId: null });
     }
     return this.snapshot();
@@ -44,17 +37,13 @@ export class VaultAppController {
 
   async create(masterPassword) {
     const now = this.now();
-    this.session = await this.persistence.createSession(masterPassword, now);
-    await this.enableAutoUnlock(masterPassword, now);
-    this.refreshEntries();
-    this.setState({ screen: "vault", selectedId: null, editingId: null });
+    const session = await this.persistence.createSession(masterPassword, now);
+    await this.activateSession(session, masterPassword, now);
   }
 
   async unlock(masterPassword) {
-    this.session = await this.persistence.openSession(masterPassword);
-    await this.enableAutoUnlock(masterPassword);
-    this.refreshEntries();
-    this.setState({ screen: "vault", selectedId: null, editingId: null });
+    const session = await this.persistence.openSession(masterPassword);
+    await this.activateSession(session, masterPassword);
   }
 
   lock() {
@@ -79,16 +68,13 @@ export class VaultAppController {
     const revision = this.lockRevision;
     this.resumePromise = (async () => {
       const cached = await this.persistence.openCachedSession(this.now());
-      const session = cached?.session ?? null;
       if (revision !== this.lockRevision) {
-        session?.lock();
+        cached?.session?.lock();
         return this.snapshot();
       }
-      this.session = session;
-      this.authenticationExpiresAt = cached?.expiresAt ?? null;
+      this.adoptCachedSession(cached);
       if (!this.session) return this.snapshot();
-      this.refreshEntries();
-      this.setState({ screen: "vault", selectedId: null, editingId: null });
+      this.showVault();
       return this.snapshot();
     })();
     try {
@@ -199,6 +185,22 @@ export class VaultAppController {
       // The current session stays usable; the next launch will ask again.
     }
     await this.persistence.rememberMasterPassword(masterPassword, rememberedAt);
+  }
+
+  async activateSession(session, masterPassword, rememberedAt = this.now()) {
+    this.session = session;
+    await this.enableAutoUnlock(masterPassword, rememberedAt);
+    this.showVault();
+  }
+
+  adoptCachedSession(cached) {
+    this.session = cached?.session ?? null;
+    this.authenticationExpiresAt = cached?.expiresAt ?? null;
+  }
+
+  showVault() {
+    this.refreshEntries();
+    this.setState({ screen: "vault", selectedId: null, editingId: null });
   }
 
   authenticationDeadline() {

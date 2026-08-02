@@ -20,8 +20,8 @@ The repository contains four layers:
   implements the two-phase save protocol;
 - `web/src` — a Promise-based Telegram `DeviceStorage` adapter, application
   state controller, capability checks, and lifecycle orchestration;
-- `web` — the working Mini App interface connected to WASM and Telegram
-  Storage.
+- `web` — the working Mini App interface, JSON translation catalog, and its
+  connection to WASM and Telegram Storage.
 
 ## Core
 
@@ -83,6 +83,9 @@ Telegram: the production application requires Bot API 9.0 and uses only
 `DeviceStorage`. SecureStorage is an optional quick-unlock capability: clients
 that do not provide it remain usable but require the master passphrase after a
 full restart. Automatic unlock never extends the current calendar-day window.
+While Telegram keeps the Mini App tab alive, switching away only hides rendered
+secrets; the in-memory session remains available until local midnight or manual
+locking.
 The production target includes current Telegram clients on
 iOS, Android, Windows, macOS, and Linux. Each device has an independent local
 vault; Pocket Vault does not currently synchronize data between devices.

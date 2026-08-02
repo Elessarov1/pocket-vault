@@ -3,6 +3,7 @@ class MockCallbackStorage {
     this.kind = kind;
     this.calls = calls;
     this.values = new Map();
+    this.restorableValues = new Map();
     this.failures = new Map();
     this.setFailures = new Map();
     this.skipCallbacks = new Set();
@@ -70,20 +71,40 @@ export class MockSecureStorage extends MockCallbackStorage {
 
   getItem(key, callback) {
     this.calls.push(`secure.get:${key}`);
-    this.callback("getItem", callback, [this.values.get(key) ?? null, false]);
+    this.callback("getItem", callback, [
+      this.values.get(key) ?? null,
+      this.restorableValues.has(key),
+    ]);
     return this;
   }
 
   setItem(key, value, callback) {
     this.calls.push(`secure.set:${key}`);
-    if (!this.failures.has("setItem")) this.values.set(key, value);
+    if (!this.failures.has("setItem")) {
+      this.values.set(key, value);
+      this.restorableValues.delete(key);
+    }
     this.callback("setItem", callback, [true]);
+    return this;
+  }
+
+  restoreItem(key, callback) {
+    this.calls.push(`secure.restore:${key}`);
+    const value = this.restorableValues.get(key) ?? null;
+    if (!this.failures.has("restoreItem") && value !== null) {
+      this.restorableValues.delete(key);
+      this.values.set(key, value);
+    }
+    this.callback("restoreItem", callback, [value]);
     return this;
   }
 
   removeItem(key, callback) {
     this.calls.push(`secure.remove:${key}`);
-    if (!this.failures.has("removeItem")) this.values.delete(key);
+    if (!this.failures.has("removeItem")) {
+      this.values.delete(key);
+      this.restorableValues.delete(key);
+    }
     this.callback("removeItem", callback, [true]);
     return this;
   }

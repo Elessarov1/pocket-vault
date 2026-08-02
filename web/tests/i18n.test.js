@@ -1,16 +1,25 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import test from "node:test";
+import test, { before } from "node:test";
 
 import {
   getLanguage,
   getLocale,
   hasEnglishTranslation,
+  loadEnglishCatalog,
   resolvePreferredLanguage,
   setLanguage,
   t,
   toggleLanguage,
 } from "../src/i18n.js";
+
+before(async () => {
+  const catalog = JSON.parse(await readFile(new URL("../locales/en.json", import.meta.url), "utf8"));
+  await loadEnglishCatalog(async () => ({
+    ok: true,
+    json: async () => catalog,
+  }));
+});
 
 function storage(value = null) {
   return {

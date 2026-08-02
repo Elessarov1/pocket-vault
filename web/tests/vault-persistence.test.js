@@ -10,7 +10,6 @@ import {
   SLOT_A_KEY,
   SLOT_B_KEY,
   VaultPersistence,
-  bindSessionAutoLock,
   nextLocalDayStart,
 } from "../src/vault-persistence.js";
 import { MockWebApp } from "./helpers/mock-telegram.js";
@@ -214,16 +213,4 @@ test("password change persists and verifies metadata before committing", async (
   assert.equal(webApp.DeviceStorage.values.get(META_KEY), "changed-metadata");
   assert.equal(session.passwordChanged, true);
   assert.notEqual(session.passwordChangeCancelled, true);
-});
-
-test("deactivated hides secrets before locking the session", () => {
-  const { webApp } = createHarness();
-  const order = [];
-  const session = { lock: () => order.push("lock") };
-  const unbind = bindSessionAutoLock(webApp, () => session, () => order.push("hide"));
-
-  webApp.emit("deactivated");
-  assert.deepEqual(order, ["hide", "lock"]);
-  unbind();
-  assert.equal(webApp.handlers.has("deactivated"), false);
 });

@@ -27,6 +27,27 @@ const validScreens = new Set([
   "destroy",
   "unsupported",
 ]);
+const ENTRY_COLORS = ["mint", "peach", "blue", "lilac"];
+const STRENGTH_LABELS = [
+  "Лучше всего — 6–7 случайных слов",
+  "Слишком короткий мастер-пароль",
+  "Добавьте ещё несколько слов",
+  "Хорошая длина",
+  "Отличная длина",
+];
+const ERROR_MESSAGES = {
+  cannot_open_vault: "Неверный мастер-пароль или хранилище повреждено",
+  invalid_master_password: "Мастер-пароль не соответствует требованиям",
+  already_initialized: "Хранилище на этом устройстве уже существует",
+  locked: "Сначала разблокируйте хранилище",
+  entry_not_found: "Запись не найдена",
+  vault_too_large: "Хранилище достигло допустимого размера",
+  unsupported_telegram: "Нужна новая версия Telegram",
+  unsupported_storage: "Локальное хранилище недоступно в этом клиенте Telegram",
+  invalid_kdf_parameters: "Параметры защиты хранилища не поддерживаются",
+  random_unavailable: "Не удалось получить безопасную случайность. Перезапустите Telegram",
+  vault_operation_failed: "Не удалось выполнить шифрование на этом устройстве",
+};
 
 const appScreen = document.querySelector("#app-screen");
 const screenPicker = document.querySelector("#screen-picker");
@@ -37,6 +58,16 @@ let currentScreen = "loading";
 let toastTimer;
 let revealTimer;
 let authenticationTimer;
+
+function listen(selector, eventName, listener, root = document) {
+  root.querySelector(selector)?.addEventListener(eventName, listener);
+}
+
+function listenAll(selector, eventName, listener, root = document) {
+  for (const element of root.querySelectorAll(selector)) {
+    element.addEventListener(eventName, listener);
+  }
+}
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -102,9 +133,6 @@ function populateEntryList(entries) {
         ? `No results for “${query}”.`
         : `По запросу «${query}» ничего не найдено.`
       : t("Записей пока нет. Добавьте первый пароль или секрет.");
-    list.querySelectorAll("[data-entry-id]").forEach((button) => {
-      button.addEventListener("click", () => runAction(() => controller.openEntry(button.dataset.entryId)));
-    });
   };
 
   let ascending = false;
@@ -115,6 +143,10 @@ function populateEntryList(entries) {
     if (ascending) filtered.reverse();
     renderEntries(filtered, query.trim());
   };
+  list.addEventListener("click", (event) => {
+    const button = event.target.closest?.("[data-entry-id]");
+    if (button) runAction(() => controller.openEntry(button.dataset.entryId));
+  });
   apply();
 
   document.querySelector("#entry-search")?.addEventListener("input", (event) => {
@@ -135,8 +167,7 @@ function createEntryCard(entry, index) {
   button.dataset.entryId = entry.id;
 
   const icon = document.createElement("span");
-  const colors = ["mint", "peach", "blue", "lilac"];
-  icon.className = `entry-icon entry-icon--${colors[index % colors.length]}`;
+  icon.className = `entry-icon entry-icon--${ENTRY_COLORS[index % ENTRY_COLORS.length]}`;
   icon.append(createLockIcon());
 
   const copy = document.createElement("span");
@@ -208,64 +239,49 @@ function populateEntryForm() {
 }
 
 function bindScreenInteractions() {
-  document.querySelectorAll("[data-language-toggle], [data-language-switch]").forEach((button) => {
-    button.addEventListener("click", switchLanguage);
-  });
-  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-    button.addEventListener("click", switchTheme);
-  });
-  document.querySelectorAll("[data-go]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const destination = button.dataset.go;
-      runAction(() => {
-        if (destination === "edit") controller.beginEdit(currentScreen === "detail" ? controller.snapshot().selectedId : null);
-        else controller.navigate(destination);
-      });
+  listenAll("[data-language-toggle], [data-language-switch]", "click", switchLanguage);
+  listenAll("[data-theme-toggle]", "click", switchTheme);
+  listenAll("[data-go]", "click", (event) => {
+    const destination = event.currentTarget.dataset.go;
+    runAction(() => {
+      if (destination === "edit") {
+        controller.beginEdit(currentScreen === "detail" ? controller.snapshot().selectedId : null);
+      } else {
+        controller.navigate(destination);
+      }
     });
   });
-  document.querySelectorAll("[data-lock-now]").forEach((button) => {
-    button.addEventListener("click", () => runAction(() => controller.manualLock()));
+  listenAll("[data-lock-now]", "click", () => runAction(() => controller.manualLock()));
+  listenAll("[data-toggle-password]", "click", (event) => togglePassword(event.currentTarget));
+  listenAll("[data-open-sheet]", "click", (event) => openSheet(event.currentTarget.dataset.openSheet));
+  listenAll("[data-close-sheet]", "click", (event) => {
+    closeSheet(event.currentTarget.closest(".sheet-backdrop"));
   });
-
-  document.querySelectorAll("[data-toggle-password]").forEach((button) => {
-    button.addEventListener("click", () => togglePassword(button));
-  });
-  document.querySelectorAll("[data-open-sheet]").forEach((button) => {
-    button.addEventListener("click", () => openSheet(button.dataset.openSheet));
-  });
-  document.querySelectorAll("[data-close-sheet]").forEach((button) => {
-    button.addEventListener("click", () => closeSheet(button.closest(".sheet-backdrop")));
-  });
-  document.querySelectorAll(".sheet-backdrop").forEach((backdrop) => {
-    backdrop.addEventListener("click", (event) => {
-      if (event.target === backdrop) closeSheet(backdrop);
-    });
+  listenAll(".sheet-backdrop", "click", (event) => {
+    if (event.target === event.currentTarget) closeSheet(event.currentTarget);
   });
 
   const creationPassword = document.querySelector("#create-password");
   creationPassword?.addEventListener("input", () => updateStrength(creationPassword));
-  document.querySelector("#creation-form")?.addEventListener("submit", handleCreate);
-  document.querySelector("#unlock-form")?.addEventListener("submit", handleUnlock);
-  document.querySelector("#change-password-form")?.addEventListener("submit", handleChangePassword);
-
-  document.querySelectorAll(".field input[maxlength], .field textarea[maxlength]").forEach((field) => {
-    field.addEventListener("input", updateCounters);
-  });
-  document.querySelector("#record-form")?.addEventListener("submit", handleSaveEntry);
-  document.querySelector("[data-reveal]")?.addEventListener("click", toggleSecret);
-  document.querySelector("[data-copy]")?.addEventListener("click", copySecret);
-  document.querySelector("[data-delete-entry]")?.addEventListener("click", () => openSheet("delete-entry-sheet"));
-  document.querySelector("#delete-entry-form")?.addEventListener("submit", handleDeleteEntry);
-  document.querySelector("[data-source]")?.addEventListener("click", () => {
+  listen("#creation-form", "submit", handleCreate);
+  listen("#unlock-form", "submit", handleUnlock);
+  listen("#change-password-form", "submit", handleChangePassword);
+  listenAll(".field input[maxlength], .field textarea[maxlength]", "input", updateCounters);
+  listen("#record-form", "submit", handleSaveEntry);
+  listen("[data-reveal]", "click", toggleSecret);
+  listen("[data-copy]", "click", copySecret);
+  listen("[data-delete-entry]", "click", () => openSheet("delete-entry-sheet"));
+  listen("#delete-entry-form", "submit", handleDeleteEntry);
+  listen("[data-source]", "click", () => {
     window.open("https://github.com/Elessarov1/pocket-vault", "_blank", "noopener,noreferrer");
   });
-  document.querySelector("[data-privacy]")?.addEventListener("click", () => {
+  listen("[data-privacy]", "click", () => {
     window.open("./privacy.html", "_blank", "noopener,noreferrer");
   });
-  document.querySelector("[data-start-unverified-reset]")?.addEventListener("click", showForgotConfirmation);
+  listen("[data-start-unverified-reset]", "click", showForgotConfirmation);
   bindDestroyForm(document.querySelector("#forgot-reset-form"), "#forgot-confirmation-word");
   bindDestroyForm(document.querySelector("#destroy-form"), "#destroy-word");
-  document.querySelector("[data-check-again]")?.addEventListener("click", () => location.reload());
+  listen("[data-check-again]", "click", () => location.reload());
 }
 
 async function handleCreate(event) {
@@ -406,19 +422,6 @@ async function runAction(action) {
 
 function showError(error) {
   const code = typeof error === "string" ? error : error?.code ?? error?.message ?? "unknown";
-  const messages = {
-    cannot_open_vault: t("Неверный мастер-пароль или хранилище повреждено"),
-    invalid_master_password: t("Мастер-пароль не соответствует требованиям"),
-    already_initialized: t("Хранилище на этом устройстве уже существует"),
-    locked: t("Сначала разблокируйте хранилище"),
-    entry_not_found: t("Запись не найдена"),
-    vault_too_large: t("Хранилище достигло допустимого размера"),
-    unsupported_telegram: t("Нужна новая версия Telegram"),
-    unsupported_storage: t("Локальное хранилище недоступно в этом клиенте Telegram"),
-    invalid_kdf_parameters: t("Параметры защиты хранилища не поддерживаются"),
-    random_unavailable: t("Не удалось получить безопасную случайность. Перезапустите Telegram"),
-    vault_operation_failed: t("Не удалось выполнить шифрование на этом устройстве"),
-  };
   const storageFailure =
     error?.name === "TelegramStorageError" ||
     String(code).includes("storage") ||
@@ -434,7 +437,7 @@ function showError(error) {
     operation: error?.operation ?? null,
     nativeCode: error?.nativeCode ?? null,
   });
-  showToast(messages[code] ?? `${fallback} · ${t("Код")}: ${diagnostic.slice(0, 64)}`);
+  showToast(ERROR_MESSAGES[code] ? t(ERROR_MESSAGES[code]) : `${fallback} · ${t("Код")}: ${diagnostic.slice(0, 64)}`);
 }
 
 function togglePassword(button) {
@@ -448,16 +451,9 @@ function togglePassword(button) {
 function updateStrength(input) {
   const length = Array.from(input.value).length;
   const score = length === 0 ? 0 : length < 12 ? 1 : length < 16 ? 2 : length < 24 ? 3 : 4;
-  const labels = [
-    t("Лучше всего — 6–7 случайных слов"),
-    t("Слишком короткий мастер-пароль"),
-    t("Добавьте ещё несколько слов"),
-    t("Хорошая длина"),
-    t("Отличная длина"),
-  ];
   document.querySelectorAll(".strength-bars i").forEach((bar, index) => bar.classList.toggle("is-filled", index < score));
   const label = document.querySelector("#strength-label");
-  if (label) label.textContent = labels[score];
+  if (label) label.textContent = t(STRENGTH_LABELS[score]);
 }
 
 function updateCounters() {
@@ -557,18 +553,10 @@ function requestReviewScreen(screen) {
 }
 
 function bindGlobalInteractions() {
-  document.querySelectorAll("[data-language-toggle], [data-language-switch]").forEach((button) => {
-    button.addEventListener("click", switchLanguage);
-  });
-  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
-    button.addEventListener("click", switchTheme);
-  });
-  document.querySelectorAll("[data-screen]").forEach((button) => {
-    button.addEventListener("click", () => requestReviewScreen(button.dataset.screen));
-  });
-  document.querySelectorAll("[data-theme-choice]").forEach((button) => {
-    button.addEventListener("click", () => setTheme(button.dataset.themeChoice));
-  });
+  listenAll("[data-language-toggle], [data-language-switch]", "click", switchLanguage);
+  listenAll("[data-theme-toggle]", "click", switchTheme);
+  listenAll("[data-screen]", "click", (event) => requestReviewScreen(event.currentTarget.dataset.screen));
+  listenAll("[data-theme-choice]", "click", (event) => setTheme(event.currentTarget.dataset.themeChoice));
   screenPicker.addEventListener("change", () => requestReviewScreen(screenPicker.value));
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeSheet(document.querySelector(".sheet-backdrop.is-open"));
@@ -584,7 +572,6 @@ function bindLifecycle() {
   runtime.webApp.onEvent("deactivated", () => {
     if (!controller?.session) return;
     hideVisibleSecret();
-    controller.lock();
   });
   runtime.webApp.onEvent("activated", () => {
     if (!controller || controller.session) return;
@@ -657,7 +644,11 @@ function nextPaint() {
 }
 
 async function boot() {
-  initializeLanguage(globalThis);
+  try {
+    await initializeLanguage(globalThis);
+  } catch (error) {
+    console.error("Pocket Vault translation catalog failed to load", error);
+  }
   initializeTheme(globalThis);
   renderLoading();
   bindGlobalInteractions();

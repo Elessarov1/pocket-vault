@@ -11,109 +11,90 @@ export class TelegramStorageError extends Error {
   }
 }
 
-export class TelegramDeviceStorage {
-  constructor(storage, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+class TelegramStorageAdapter {
+  constructor(storage, kind, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     this.storage = storage;
+    this.kind = kind;
     this.timeoutMs = timeoutMs;
   }
 
   async get(key) {
     validateKey(key);
-    const [value] = await invoke(
+    const [storedValue, canRestore] = await invoke(
       this.storage,
       "getItem",
       [key],
       this.timeoutMs,
-      "device.getItem",
+      this.operation("getItem"),
     );
+    const value = storedValue === null && canRestore ? await this.restore(key) : storedValue;
     if (value !== null && typeof value !== "string") {
-      throw new TelegramStorageError("invalid_response", "device.getItem");
+      throw new TelegramStorageError("invalid_response", this.operation("getItem"));
     }
     return value;
   }
 
-  async set(key, value) {
+  async setVerified(key, value) {
     validateKey(key);
     validateValue(value);
     await mutateAndVerify({
       storage: this.storage,
       method: "setItem",
       args: [key, value],
-      operation: "device.setItem",
+      operation: this.operation("setItem"),
       timeoutMs: this.timeoutMs,
       unconfirmedCode: "write_not_confirmed",
       verify: async () => (await this.get(key)) === value,
     });
   }
 
-  async setVerified(key, value) {
-    await this.set(key, value);
-  }
-
-  async remove(key) {
+  async removeVerified(key) {
     validateKey(key);
     await mutateAndVerify({
       storage: this.storage,
       method: "removeItem",
       args: [key],
-      operation: "device.removeItem",
+      operation: this.operation("removeItem"),
       timeoutMs: this.timeoutMs,
       unconfirmedCode: "remove_not_confirmed",
       verify: async () => (await this.get(key)) === null,
     });
   }
 
-  async removeVerified(key) {
-    await this.remove(key);
+  async restore(key) {
+    if (this.kind !== "secure") return null;
+    const [value] = await invoke(
+      this.storage,
+      "restoreItem",
+      [key],
+      this.timeoutMs,
+      this.operation("restoreItem"),
+    );
+    return value;
+  }
+
+  operation(method) {
+    return `${this.kind}.${method}`;
   }
 }
 
-export class TelegramSecureStorage {
-  constructor(storage, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
-    this.storage = storage;
-    this.timeoutMs = timeoutMs;
+export class TelegramDeviceStorage extends TelegramStorageAdapter {
+  constructor(storage, options) {
+    super(storage, "device", options);
   }
 
-  async get(key) {
-    validateKey(key);
-    const [value] = await invoke(
-      this.storage,
-      "getItem",
-      [key],
-      this.timeoutMs,
-      "secure.getItem",
-    );
-    if (value !== null && typeof value !== "string") {
-      throw new TelegramStorageError("invalid_response", "secure.getItem");
-    }
-    return value;
+  async set(key, value) {
+    await this.setVerified(key, value);
   }
 
-  async setVerified(key, value) {
-    validateKey(key);
-    validateValue(value);
-    await mutateAndVerify({
-      storage: this.storage,
-      method: "setItem",
-      args: [key, value],
-      operation: "secure.setItem",
-      timeoutMs: this.timeoutMs,
-      unconfirmedCode: "write_not_confirmed",
-      verify: async () => (await this.get(key)) === value,
-    });
+  async remove(key) {
+    await this.removeVerified(key);
   }
+}
 
-  async removeVerified(key) {
-    validateKey(key);
-    await mutateAndVerify({
-      storage: this.storage,
-      method: "removeItem",
-      args: [key],
-      operation: "secure.removeItem",
-      timeoutMs: this.timeoutMs,
-      unconfirmedCode: "remove_not_confirmed",
-      verify: async () => (await this.get(key)) === null,
-    });
+export class TelegramSecureStorage extends TelegramStorageAdapter {
+  constructor(storage, options) {
+    super(storage, "secure", options);
   }
 }
 

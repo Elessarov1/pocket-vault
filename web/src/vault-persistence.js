@@ -1,5 +1,3 @@
-import { bindDeactivated } from "./telegram.js";
-
 export const META_KEY = "vault_meta_v1";
 export const SLOT_A_KEY = "vault_slot_a_v1";
 export const SLOT_B_KEY = "vault_slot_b_v1";
@@ -252,11 +250,4 @@ export function nextLocalDayStart(timestamp) {
   if (Number.isNaN(date.getTime())) return Number.NaN;
   date.setHours(24, 0, 0, 0);
   return date.getTime();
-}
-
-export function bindSessionAutoLock(webApp, getSession, hideSecrets = () => {}) {
-  return bindDeactivated(webApp, () => {
-    hideSecrets();
-    getSession()?.lock();
-  });
 }

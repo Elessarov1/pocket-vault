@@ -22,14 +22,6 @@ export function resolveTelegramWebApp(root = globalThis) {
   return webApp;
 }
 
-export function bindDeactivated(webApp, handler) {
-  if (typeof webApp?.onEvent !== "function" || typeof webApp?.offEvent !== "function") {
-    throw new UnsupportedTelegramError("Telegram lifecycle events are unavailable");
-  }
-  webApp.onEvent("deactivated", handler);
-  return () => webApp.offEvent("deactivated", handler);
-}
-
 function assertMethods(value, methods) {
   if (!value || methods.some((method) => typeof value[method] !== "function")) {
     throw new UnsupportedTelegramError();

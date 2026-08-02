@@ -55,6 +55,18 @@ test("secure adapter stores a remembered master password with verified readback"
   assert.equal(await secure.get("master_password_cache_v1"), null);
 });
 
+test("secure adapter restores a recoverable value reported by Telegram", async () => {
+  const webApp = new MockWebApp();
+  const secure = new TelegramSecureStorage(webApp.SecureStorage);
+  webApp.SecureStorage.restorableValues.set("master_password_cache_v1", "cached value");
+
+  assert.equal(await secure.get("master_password_cache_v1"), "cached value");
+  assert.equal(
+    webApp.calls.includes("secure.restore:master_password_cache_v1"),
+    true,
+  );
+});
+
 test("missing SecureStorage is reported without making DeviceStorage unsupported", async () => {
   const secure = new TelegramSecureStorage(undefined);
   await assert.rejects(secure.get("master_password_cache_v1"), { code: "unsupported_storage" });
