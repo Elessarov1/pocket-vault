@@ -1,0 +1,325 @@
+const LANGUAGE_STORAGE_KEY = "pocket-vault-language";
+const SUPPORTED_LANGUAGES = new Set(["ru", "en"]);
+
+const ENGLISH = new Map(Object.entries({
+  "Черновик интерфейса · 01": "Interface draft · 01",
+  "Направление": "Direction",
+  "Спокойный, честный, локальный.": "Calm, honest, local.",
+  "Пароли — основной сценарий. Коды и заметки остаются рядом, но не перетягивают на себя смысл продукта.": "Passwords come first. Codes and notes stay close without distracting from the product’s purpose.",
+  "Экраны": "Screens",
+  "Создание": "Create",
+  "Вход": "Unlock",
+  "Хранилище": "Vault",
+  "Запись": "Entry",
+  "Редактор": "Editor",
+  "Настройки": "Settings",
+  "Уничтожение": "Destruction",
+  "Несовместимость": "Unsupported",
+  "Тема": "Theme",
+  "Тема прототипа": "Prototype theme",
+  "Светлая": "Light",
+  "Тёмная": "Dark",
+  "Preview-режим хранит зашифрованные данные только в памяти вкладки — до перезагрузки.": "Preview mode keeps encrypted data in this tab’s memory until reload.",
+  "Экран": "Screen",
+  "Переключить тему": "Switch theme",
+  "Предпросмотр мобильного приложения": "Mobile app preview",
+  "Навигация по прототипу": "Prototype navigation",
+  "Как защищены данные": "How data is protected",
+  "Ваши пароли.": "Your passwords.",
+  "Только ваши.": "Yours alone.",
+  "Храните пароли от сайтов и приложений, ключи, PIN-коды и приватные заметки на этом устройстве.": "Keep website and app passwords, keys, PINs, and private notes on this device.",
+  "Мастер-пароль": "Master password",
+  "Длинная фраза от 16 символов": "A long phrase, at least 16 characters",
+  "Показать": "Show",
+  "Скрыть": "Hide",
+  "Лучше всего — 6–7 случайных слов": "Best choice: 6–7 random words",
+  "Посмотреть пример": "View an example",
+  "Пример запоминаемого формата": "Example of a memorable format",
+  "следуй-за-белым-кроликом": "follow-the-white-rabbit",
+  "Не копируйте пример буквально — добавьте ещё 2–3 собственных случайных слова.": "Do not copy the example verbatim—add 2–3 random words of your own.",
+  "Повторите мастер-пароль": "Repeat master password",
+  "Введите ещё раз": "Enter it again",
+  "Я понимаю: если потеряю мастер-пароль или это устройство, восстановить записи будет невозможно.": "I understand: if I lose my master password or this device, my entries cannot be recovered.",
+  "Создать хранилище": "Create vault",
+  "Локальное шифрование · нет облака · нет восстановления": "Local encryption · no cloud · no recovery",
+  "Закрыть": "Close",
+  "Как защищены записи": "How entries are protected",
+  "Все поля шифруются на устройстве до сохранения. В локальном хранилище Telegram остаётся только шифротекст.": "Every field is encrypted on the device before storage. Telegram’s local storage contains only ciphertext.",
+  "Мастер-пароль не сохраняется и не отправляется Telegram или разработчику. Используйте длинную уникальную фразу.": "The master password is never stored or sent to Telegram or the developer. Use a long, unique phrase.",
+  "Понятно": "Got it",
+  "Хранилище заблокировано": "Vault locked",
+  "С возвращением.": "Welcome back.",
+  "Введите мастер-пароль. Он нужен при каждом новом запуске.": "Enter your master password. It is required after every new launch.",
+  "Введите пароль или фразу": "Enter your password or phrase",
+  "Открыть хранилище": "Unlock vault",
+  "Не помню мастер-пароль": "I forgot my master password",
+  "Зашифровано на этом устройстве": "Encrypted on this device",
+  "Telegram и разработчик не получают ваши пароли в открытом виде.": "Telegram and the developer never receive your passwords in plaintext.",
+  "Доступ восстановить нельзя": "Access cannot be recovered",
+  "Без мастер-пароля записи невозможно расшифровать. Можно только удалить локальное хранилище и начать заново.": "Without the master password, entries cannot be decrypted. You can only delete the local vault and start over.",
+  "Без проверки владельца": "Without owner verification",
+  "Любой человек с доступом к этому Telegram сможет удалить хранилище, но не сможет прочитать записи.": "Anyone with access to this Telegram client can delete the vault, but cannot read its entries.",
+  "Перейти к удалению": "Continue to deletion",
+  "Отмена": "Cancel",
+  "Удалить без восстановления?": "Delete without recovery?",
+  "Введите": "Enter",
+  "УДАЛИТЬ": "DELETE",
+  ", чтобы стереть локальные записи. Проверка владельца не выполняется.": " to erase local entries. Owner verification is not performed.",
+  "Слово подтверждения": "Confirmation word",
+  "Удалить хранилище": "Delete vault",
+  "Ваши секреты": "Your secrets",
+  "0 записей": "0 entries",
+  "Открыть настройки": "Open settings",
+  "Поиск по записям": "Search entries",
+  "Поиск по названию": "Search by title",
+  "Недавние": "Recent",
+  "По обновлению": "By update",
+  "Записей пока нет. Добавьте первый пароль или секрет.": "No entries yet. Add your first password or secret.",
+  "Добавить": "Add",
+  "Другие действия": "More actions",
+  "Пароль": "Password",
+  "Скрыт": "Hidden",
+  "Показан": "Visible",
+  "Скопировать": "Copy",
+  "Создано": "Created",
+  "Изменено": "Updated",
+  "Изменить запись": "Edit entry",
+  "Изменить": "Edit",
+  "Удалить запись": "Delete entry",
+  "Удалить эту запись?": "Delete this entry?",
+  "Пароль или секрет исчезнет без возможности восстановления.": "The password or secret will be permanently deleted.",
+  "Назад": "Back",
+  "Новая запись": "New entry",
+  "Новый пароль или секрет": "New password or secret",
+  "Добавьте то, что важно защитить.": "Add what matters to you.",
+  "Название и описание тоже будут зашифрованы.": "The title and description will be encrypted too.",
+  "Название": "Title",
+  "обязательно": "required",
+  "Например, Wi-Fi в офисе": "For example, Office Wi-Fi",
+  "Секрет": "Secret",
+  "Пароль, ключ, PIN или код": "Password, key, PIN, or code",
+  "Описание": "Description",
+  "необязательно": "optional",
+  "Где используется или что важно помнить": "Where it is used or what to remember",
+  "Все поля шифруются локально перед сохранением.": "All fields are encrypted locally before storage.",
+  "Сохранить запись": "Save entry",
+  "Безопасность": "Security",
+  "Интерфейс": "Interface",
+  "Заблокировать сейчас": "Lock now",
+  "Потребуется мастер-пароль": "Master password required",
+  "Локальное хранение": "Local storage",
+  "Синхронизация отключена": "Sync is disabled",
+  "Включено": "Enabled",
+  "Язык": "Language",
+  "Русский": "Russian",
+  "English": "English",
+  "О приложении": "About",
+  "Версия": "Version",
+  "Исходный код": "Source code",
+  "Конфиденциальность": "Privacy",
+  "Опасная зона": "Danger zone",
+  "Уничтожить хранилище": "Destroy vault",
+  "Удалить все локальные записи": "Delete all local entries",
+  "Открытые пароли не отправляются Telegram или разработчику.": "Decrypted passwords are never sent to Telegram or the developer.",
+  "Нет аккаунта, сервера и резервного ключа.": "No account, server, or recovery key.",
+  "Необратимое действие": "Irreversible action",
+  "Уничтожить хранилище?": "Destroy the vault?",
+  "Все записи будут удалены с этого устройства.": "All entries will be deleted from this device.",
+  "Вернуть записи не получится": "Entries cannot be restored",
+  "У приложения и разработчика нет резервной копии.": "Neither the app nor the developer has a backup.",
+  "Другие устройства не затронуты": "Other devices are unaffected",
+  "В MVP хранилище существует только здесь.": "In the MVP, this vault exists only here.",
+  "Уничтожить навсегда": "Destroy permanently",
+  "Нужен актуальный Telegram": "An up-to-date Telegram is required",
+  "Локальное хранилище недоступно.": "Local storage is unavailable.",
+  "Обновите Telegram и попробуйте ещё раз. Pocket Vault требует DeviceStorage, доступный в актуальных мобильных и десктопных клиентах.": "Update Telegram and try again. Pocket Vault requires DeviceStorage, available in current mobile and desktop clients.",
+  "Проверить ещё раз": "Check again",
+  "Без постоянного локального хранилища записи не создаются.": "Entries cannot be created without persistent local storage.",
+  "Открываем защищённое хранилище…": "Opening your encrypted vault…",
+  "Пароль или секрет": "Password or secret",
+  "Без описания": "No description",
+  "Сохранённый пароль или секрет": "Saved password or secret",
+  "Обновите защищённую запись.": "Update the encrypted entry.",
+  "Изменить или удалить запись можно ниже": "You can edit or delete the entry below",
+  "Мастер-пароль должен быть не короче 16 символов": "Master password must contain at least 16 characters",
+  "Мастер-пароли не совпадают": "Master passwords do not match",
+  "Подтвердите предупреждение об отсутствии восстановления": "Confirm that you understand there is no recovery",
+  "Создаём…": "Creating…",
+  "Введите мастер-пароль": "Enter your master password",
+  "Открываем…": "Opening…",
+  "Сохраняем…": "Saving…",
+  "Запись зашифрована и сохранена": "Entry encrypted and saved",
+  "Удаляем…": "Deleting…",
+  "Запись удалена": "Entry deleted",
+  "Уничтожаем…": "Destroying…",
+  "Хранилище уничтожено без восстановления": "Vault permanently destroyed",
+  "Неверный мастер-пароль или хранилище повреждено": "Incorrect master password or corrupted vault",
+  "Мастер-пароль не соответствует требованиям": "Master password does not meet the requirements",
+  "Хранилище на этом устройстве уже существует": "A vault already exists on this device",
+  "Сначала разблокируйте хранилище": "Unlock the vault first",
+  "Запись не найдена": "Entry not found",
+  "Хранилище достигло допустимого размера": "The vault has reached its size limit",
+  "Нужна новая версия Telegram": "A newer Telegram version is required",
+  "Локальное хранилище недоступно в этом клиенте Telegram": "Local storage is unavailable in this Telegram client",
+  "Параметры защиты хранилища не поддерживаются": "The vault protection parameters are unsupported",
+  "Не удалось получить безопасную случайность. Перезапустите Telegram": "Secure randomness is unavailable. Restart Telegram",
+  "Не удалось выполнить шифрование на этом устройстве": "Encryption could not be completed on this device",
+  "Не удалось сохранить данные в Telegram": "Could not save data in Telegram",
+  "Операция не выполнена": "Operation failed",
+  "Код": "Code",
+  "Слишком короткий мастер-пароль": "Master password is too short",
+  "Добавьте ещё несколько слов": "Add a few more words",
+  "Хорошая длина": "Good length",
+  "Отличная длина": "Excellent length",
+  "Секрет скопирован": "Secret copied",
+  "Браузер не разрешил доступ к буферу обмена": "The browser denied clipboard access",
+  "Не удалось скопировать секрет": "Could not copy the secret",
+  "сегодня": "today",
+  "вчера": "yesterday",
+  "Политика конфиденциальности": "Privacy Policy",
+  "Конфиденциальность — Pocket Vault": "Privacy — Pocket Vault",
+  "Редакция от 2 августа 2026 года": "Updated August 2, 2026",
+  "Pocket Vault — локальное хранилище паролей и других коротких секретов внутри Telegram Mini App.": "Pocket Vault is a local vault for passwords and other short secrets inside a Telegram Mini App.",
+  "Какие данные обрабатываются": "Data we process",
+  "Пользователь может сохранять названия, пароли, ключи, PIN-коды и описания. Все поля записи шифруются на устройстве до сохранения.": "You may save titles, passwords, keys, PINs, and descriptions. Every entry field is encrypted on the device before storage.",
+  "Где хранятся данные": "Where data is stored",
+  "Зашифрованный контейнер хранится локально через Telegram DeviceStorage. Ключ расшифрования получается из мастер-пароля только в памяти приложения и отдельно не сохраняется. Pocket Vault не имеет собственного сервера, аккаунтов и облачной синхронизации.": "The encrypted container is stored locally through Telegram DeviceStorage. The decryption key is derived from the master password only in app memory and is not stored separately. Pocket Vault has no server, accounts, or cloud sync.",
+  "Выбранный язык интерфейса сохраняется отдельно в localStorage браузера и не содержит данных хранилища.": "The selected interface language is stored separately in browser localStorage and contains no vault data.",
+  "Мастер-пароль и доступ": "Master password and access",
+  "Мастер-пароль не сохраняется и не отправляется разработчику. Без него расшифровать записи невозможно. При его утрате доступ восстановить нельзя — можно только уничтожить локальное хранилище и начать заново.": "The master password is never stored or sent to the developer. Entries cannot be decrypted without it. If it is lost, access cannot be recovered—you can only destroy the local vault and start over.",
+  "Удаление": "Deletion",
+  "Пользователь может уничтожить хранилище без мастер-пароля после явного подтверждения. Приложение удаляет принадлежащие Pocket Vault значения. Это не является обещанием физического стирания резервных копий, которые могли быть созданы операционной системой или Telegram.": "You may destroy the vault without the master password after explicit confirmation. The app removes values belonging to Pocket Vault. This does not guarantee physical erasure of backups that may have been created by the operating system or Telegram.",
+  "Буфер обмена": "Clipboard",
+  "При нажатии «Скопировать» выбранный секрет передаётся в системный буфер обмена. Его дальнейшее хранение и доступ к нему контролируются устройством и операционной системой пользователя.": "When you select Copy, the chosen secret is placed on the system clipboard. Further storage and access are controlled by your device and operating system.",
+  "Аналитика и технические журналы": "Analytics and technical logs",
+  "В приложении нет аналитики, рекламных трекеров и собственных cookies. Хостинг и Telegram могут обрабатывать стандартные технические сведения о сетевом запросе согласно своим правилам, но содержимое хранилища в эти запросы не включается.": "The app contains no analytics, advertising trackers, or first-party cookies. The hosting provider and Telegram may process standard request metadata under their own policies, but vault contents are not included in those requests.",
+  "Ограничения": "Limitations",
+  "Хранилище привязано к конкретному Telegram-клиенту и устройству. Удаление приложения, очистка данных Telegram или сброс устройства могут привести к необратимой утрате записей. Человек, получивший копию шифротекста, может пытаться подобрать мастер-пароль офлайн, поэтому следует использовать длинную уникальную фразу.": "The vault is tied to a specific Telegram client and device. Removing the app, clearing Telegram data, or resetting the device may permanently erase entries. Anyone who obtains a copy of the ciphertext can attempt offline password guessing, so use a long, unique phrase.",
+  "Контакт и исходный код": "Contact and source code",
+  "Сообщить о проблеме или задать вопрос можно через": "Report a problem or ask a question through",
+  ". Исходный код доступен в": ". The source code is available in the",
+  "репозитории проекта": "project repository",
+}));
+
+const RUSSIAN = new Map(Array.from(ENGLISH, ([russian, english]) => [english, russian]));
+let currentLanguage = "ru";
+
+export function initializeLanguage(root = globalThis) {
+  currentLanguage = resolvePreferredLanguage(root);
+  applyDocumentLanguage(root.document);
+  translateRoot(root.document?.body);
+  return currentLanguage;
+}
+
+export function resolvePreferredLanguage(root = globalThis) {
+  const stored = readStoredLanguage(root.localStorage);
+  if (stored) return stored;
+  const telegramLanguage = root.Telegram?.WebApp?.initDataUnsafe?.user?.language_code;
+  const browserLanguage = root.navigator?.language;
+  return normalizeLanguage(telegramLanguage ?? browserLanguage ?? "ru");
+}
+
+export function setLanguage(language, { persist = true, root = globalThis } = {}) {
+  currentLanguage = normalizeLanguage(language);
+  if (persist) writeStoredLanguage(root.localStorage, currentLanguage);
+  applyDocumentLanguage(root.document);
+  translateRoot(root.document?.body);
+  return currentLanguage;
+}
+
+export function toggleLanguage(options) {
+  return setLanguage(currentLanguage === "ru" ? "en" : "ru", options);
+}
+
+export function getLanguage() {
+  return currentLanguage;
+}
+
+export function getLocale() {
+  return currentLanguage === "en" ? "en-US" : "ru-RU";
+}
+
+export function t(russianText) {
+  return currentLanguage === "en" ? ENGLISH.get(russianText) ?? russianText : russianText;
+}
+
+export function hasEnglishTranslation(russianText) {
+  return ENGLISH.has(russianText);
+}
+
+export function translateRoot(root) {
+  if (!root) return;
+  const document = root.ownerDocument ?? root;
+  const walker = document.createTreeWalker(root, globalThis.NodeFilter?.SHOW_TEXT ?? 4);
+  let node = walker.nextNode();
+  while (node) {
+    translateTextNode(node);
+    node = walker.nextNode();
+  }
+
+  const elements = root.querySelectorAll?.("[placeholder], [aria-label], [title]") ?? [];
+  for (const element of elements) {
+    for (const attribute of ["placeholder", "aria-label", "title"]) {
+      if (element.hasAttribute(attribute)) {
+        element.setAttribute(attribute, translateValue(element.getAttribute(attribute)));
+      }
+    }
+  }
+  updateLanguageButtons(root);
+}
+
+export function updateLanguageButtons(root = globalThis.document) {
+  const buttons = root?.querySelectorAll?.("[data-language-toggle]") ?? [];
+  for (const button of buttons) {
+    button.textContent = currentLanguage === "ru" ? "EN" : "RU";
+    button.setAttribute(
+      "aria-label",
+      currentLanguage === "ru" ? "Switch to English" : "Переключить на русский",
+    );
+  }
+  const values = root?.querySelectorAll?.("[data-current-language]") ?? [];
+  for (const value of values) value.textContent = currentLanguage === "ru" ? "Русский" : "English";
+}
+
+function translateTextNode(node) {
+  const value = node.nodeValue;
+  const match = value?.match(/^(\s*)([\s\S]*?)(\s*)$/);
+  if (!match || !match[2]) return;
+  const translated = translateValue(match[2]);
+  if (translated !== match[2]) node.nodeValue = `${match[1]}${translated}${match[3]}`;
+}
+
+function translateValue(value) {
+  const russian = ENGLISH.has(value) ? value : RUSSIAN.get(value);
+  if (!russian) return value;
+  return currentLanguage === "en" ? ENGLISH.get(russian) : russian;
+}
+
+function normalizeLanguage(language) {
+  const normalized = String(language).toLocaleLowerCase().split(/[-_]/)[0];
+  return SUPPORTED_LANGUAGES.has(normalized) ? normalized : "en";
+}
+
+function readStoredLanguage(storage) {
+  try {
+    const value = storage?.getItem(LANGUAGE_STORAGE_KEY);
+    return SUPPORTED_LANGUAGES.has(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredLanguage(storage, language) {
+  try {
+    storage?.setItem(LANGUAGE_STORAGE_KEY, language);
+  } catch {
+    // Language preference is non-critical and may be blocked by the WebView.
+  }
+}
+
+function applyDocumentLanguage(document = globalThis.document) {
+  if (!document?.documentElement) return;
+  document.documentElement.lang = currentLanguage;
+  const title = document.querySelector("title");
+  if (title) title.textContent = translateValue(title.textContent);
+}

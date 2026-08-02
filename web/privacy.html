@@ -5,15 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
     >
     <meta name="theme-color" content="#f2f0e9">
     <title>Конфиденциальность — Pocket Vault</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="privacy.js" type="module"></script>
   </head>
   <body class="privacy-page">
     <main class="privacy-document">
-      <a class="privacy-back" href="./">← Pocket Vault</a>
+      <div class="privacy-toolbar">
+        <a class="privacy-back" href="./">← Pocket Vault</a>
+        <button class="language-button" type="button" data-language-toggle>EN</button>
+      </div>
       <p class="eyebrow">Редакция от 2 августа 2026 года</p>
       <h1>Политика конфиденциальности</h1>
       <p class="privacy-lead">Pocket Vault — локальное хранилище паролей и других коротких секретов внутри Telegram Mini App.</p>
@@ -26,6 +30,7 @@
       <section>
         <h2>Где хранятся данные</h2>
         <p>Зашифрованный контейнер хранится локально через Telegram DeviceStorage. Ключ расшифрования получается из мастер-пароля только в памяти приложения и отдельно не сохраняется. Pocket Vault не имеет собственного сервера, аккаунтов и облачной синхронизации.</p>
+        <p>Выбранный язык интерфейса сохраняется отдельно в localStorage браузера и не содержит данных хранилища.</p>
       </section>
 
       <section>

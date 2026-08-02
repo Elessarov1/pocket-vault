@@ -1,5 +1,13 @@
 import { VaultAppController } from "./src/app-controller.js";
 import { initializePreviewRuntime, initializeVaultRuntime } from "./src/bootstrap.js";
+import {
+  getLanguage,
+  getLocale,
+  initializeLanguage,
+  t,
+  toggleLanguage,
+  translateRoot,
+} from "./src/i18n.js";
 import { isPreviewLocation } from "./src/preview-runtime.js";
 
 const validScreens = new Set([
@@ -37,7 +45,7 @@ function renderLoading() {
   mark.className = "loading-mark";
   mark.textContent = "PV";
   const title = document.createElement("h2");
-  title.textContent = "Открываем защищённое хранилище…";
+  title.textContent = t("Открываем защищённое хранилище…");
   section.append(mark, title);
   appScreen.replaceChildren(section);
 }
@@ -50,6 +58,7 @@ function renderScreen(name) {
   hideVisibleSecret();
   currentScreen = name;
   appScreen.replaceChildren(template.content.cloneNode(true));
+  translateRoot(appScreen);
   appScreen.scrollTop = 0;
   screenPicker.value = name;
   updateReviewNavigation(name);
@@ -80,8 +89,10 @@ function populateEntryList(entries) {
     const hasEntries = entries.length > 0;
     empty.hidden = items.length > 0;
     empty.textContent = hasEntries
-      ? `По запросу «${query}» ничего не найдено.`
-      : "Записей пока нет. Добавьте первый пароль или секрет.";
+      ? getLanguage() === "en"
+        ? `No results for “${query}”.`
+        : `По запросу «${query}» ничего не найдено.`
+      : t("Записей пока нет. Добавьте первый пароль или секрет.");
     list.querySelectorAll("[data-entry-id]").forEach((button) => {
       button.addEventListener("click", () => runAction(() => controller.openEntry(button.dataset.entryId)));
     });
@@ -90,8 +101,8 @@ function populateEntryList(entries) {
   let ascending = false;
   let query = "";
   const apply = () => {
-    const normalized = query.trim().toLocaleLowerCase("ru");
-    const filtered = entries.filter((entry) => entry.title.toLocaleLowerCase("ru").includes(normalized));
+    const normalized = query.trim().toLocaleLowerCase(getLocale());
+    const filtered = entries.filter((entry) => entry.title.toLocaleLowerCase(getLocale()).includes(normalized));
     if (ascending) filtered.reverse();
     renderEntries(filtered, query.trim());
   };
@@ -103,7 +114,7 @@ function populateEntryList(entries) {
   });
   document.querySelector("[data-sort]")?.addEventListener("click", (event) => {
     ascending = !ascending;
-    event.currentTarget.innerHTML = `По обновлению <b>${ascending ? "↑" : "↓"}</b>`;
+    event.currentTarget.innerHTML = `${t("По обновлению")} <b>${ascending ? "↑" : "↓"}</b>`;
     apply();
   });
 }
@@ -124,7 +135,7 @@ function createEntryCard(entry, index) {
   const title = document.createElement("strong");
   title.textContent = entry.title;
   const kind = document.createElement("small");
-  kind.textContent = "Пароль или секрет";
+  kind.textContent = t("Пароль или секрет");
   copy.append(title, kind);
 
   const time = document.createElement("span");
@@ -161,7 +172,7 @@ function populateEntryDetails() {
     const entry = controller.getSelectedDetails();
     document.querySelector("#detail-title").textContent = entry.title;
     const description = document.querySelector("#detail-description");
-    description.textContent = entry.description ?? "Без описания";
+    description.textContent = entry.description ?? t("Без описания");
     document.querySelector("#detail-created").textContent = formatFullDate(entry.createdAt);
     document.querySelector("#detail-updated").textContent = formatFullDate(entry.updatedAt);
   } catch (error) {
@@ -178,9 +189,9 @@ function populateEntryForm() {
     return;
   }
   if (!entry) return;
-  document.querySelector("#record-form-title").textContent = "Изменить запись";
-  document.querySelector("#record-form-eyebrow").textContent = "Сохранённый пароль или секрет";
-  document.querySelector("#record-form-heading").textContent = "Обновите защищённую запись.";
+  document.querySelector("#record-form-title").textContent = t("Изменить запись");
+  document.querySelector("#record-form-eyebrow").textContent = t("Сохранённый пароль или секрет");
+  document.querySelector("#record-form-heading").textContent = t("Обновите защищённую запись.");
   document.querySelector("#record-title").value = entry.title;
   document.querySelector("#record-secret").value = entry.secret;
   document.querySelector("#record-description").value = entry.description ?? "";
@@ -188,6 +199,9 @@ function populateEntryForm() {
 }
 
 function bindScreenInteractions() {
+  document.querySelectorAll("[data-language-toggle], [data-language-switch]").forEach((button) => {
+    button.addEventListener("click", switchLanguage);
+  });
   document.querySelectorAll("[data-go]").forEach((button) => {
     button.addEventListener("click", () => {
       const destination = button.dataset.go;
@@ -225,7 +239,7 @@ function bindScreenInteractions() {
   document.querySelector("#record-form")?.addEventListener("submit", handleSaveEntry);
   document.querySelector("[data-reveal]")?.addEventListener("click", toggleSecret);
   document.querySelector("[data-copy]")?.addEventListener("click", copySecret);
-  document.querySelector("[data-menu]")?.addEventListener("click", () => showToast("Изменить или удалить запись можно ниже"));
+  document.querySelector("[data-menu]")?.addEventListener("click", () => showToast(t("Изменить или удалить запись можно ниже")));
   document.querySelector("[data-delete-entry]")?.addEventListener("click", () => openSheet("delete-entry-sheet"));
   document.querySelector("#delete-entry-form")?.addEventListener("submit", handleDeleteEntry);
   document.querySelector("[data-source]")?.addEventListener("click", () => {
@@ -247,13 +261,13 @@ async function handleCreate(event) {
   const confirmationInput = form.querySelector("#confirm-password");
   const password = passwordInput.value;
   const confirmation = confirmationInput.value;
-  if (Array.from(password).length < 16) return showToast("Мастер-пароль должен быть не короче 16 символов");
-  if (password !== confirmation) return showToast("Мастер-пароли не совпадают");
-  if (!form.querySelector("#no-recovery-confirm").checked) return showToast("Подтвердите предупреждение об отсутствии восстановления");
+  if (Array.from(password).length < 16) return showToast(t("Мастер-пароль должен быть не короче 16 символов"));
+  if (password !== confirmation) return showToast(t("Мастер-пароли не совпадают"));
+  if (!form.querySelector("#no-recovery-confirm").checked) return showToast(t("Подтвердите предупреждение об отсутствии восстановления"));
 
   passwordInput.value = "";
   confirmationInput.value = "";
-  await runBusy(form, "Создаём…", () => controller.create(password));
+  await runBusy(form, t("Создаём…"), () => controller.create(password));
 }
 
 async function handleUnlock(event) {
@@ -261,9 +275,9 @@ async function handleUnlock(event) {
   const form = event.currentTarget;
   const input = form.querySelector("#unlock-password");
   const password = input.value;
-  if (!password) return showToast("Введите мастер-пароль");
+  if (!password) return showToast(t("Введите мастер-пароль"));
   input.value = "";
-  await runBusy(form, "Открываем…", () => controller.unlock(password));
+  await runBusy(form, t("Открываем…"), () => controller.unlock(password));
 }
 
 async function handleSaveEntry(event) {
@@ -281,14 +295,14 @@ async function handleSaveEntry(event) {
   titleInput.value = "";
   secretInput.value = "";
   descriptionInput.value = "";
-  const saved = await runBusy(form, "Сохраняем…", () => controller.saveEntry(values));
-  if (saved) showToast("Запись зашифрована и сохранена");
+  const saved = await runBusy(form, t("Сохраняем…"), () => controller.saveEntry(values));
+  if (saved) showToast(t("Запись зашифрована и сохранена"));
 }
 
 async function handleDeleteEntry(event) {
   event.preventDefault();
-  const deleted = await runBusy(event.currentTarget, "Удаляем…", () => controller.deleteSelected());
-  if (deleted) showToast("Запись удалена");
+  const deleted = await runBusy(event.currentTarget, t("Удаляем…"), () => controller.deleteSelected());
+  if (deleted) showToast(t("Запись удалена"));
 }
 
 function bindDestroyForm(form, inputSelector) {
@@ -296,15 +310,15 @@ function bindDestroyForm(form, inputSelector) {
   const confirmation = form.querySelector(inputSelector);
   const submit = form.querySelector("button[type='submit']");
   const update = () => {
-    submit.disabled = confirmation.value !== "УДАЛИТЬ";
+    submit.disabled = confirmation.value !== t("УДАЛИТЬ");
   };
   confirmation.addEventListener("input", update);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (confirmation.value !== "УДАЛИТЬ") return;
+    if (confirmation.value !== t("УДАЛИТЬ")) return;
     confirmation.value = "";
-    const destroyed = await runBusy(form, "Уничтожаем…", () => controller.destroy());
-    if (destroyed) showToast("Хранилище уничтожено без восстановления");
+    const destroyed = await runBusy(form, t("Уничтожаем…"), () => controller.destroy());
+    if (destroyed) showToast(t("Хранилище уничтожено без восстановления"));
   });
 }
 
@@ -349,17 +363,17 @@ async function runAction(action) {
 function showError(error) {
   const code = typeof error === "string" ? error : error?.code ?? error?.message ?? "unknown";
   const messages = {
-    cannot_open_vault: "Неверный мастер-пароль или хранилище повреждено",
-    invalid_master_password: "Мастер-пароль не соответствует требованиям",
-    already_initialized: "Хранилище на этом устройстве уже существует",
-    locked: "Сначала разблокируйте хранилище",
-    entry_not_found: "Запись не найдена",
-    vault_too_large: "Хранилище достигло допустимого размера",
-    unsupported_telegram: "Нужна новая версия Telegram",
-    unsupported_storage: "Локальное хранилище недоступно в этом клиенте Telegram",
-    invalid_kdf_parameters: "Параметры защиты хранилища не поддерживаются",
-    random_unavailable: "Не удалось получить безопасную случайность. Перезапустите Telegram",
-    vault_operation_failed: "Не удалось выполнить шифрование на этом устройстве",
+    cannot_open_vault: t("Неверный мастер-пароль или хранилище повреждено"),
+    invalid_master_password: t("Мастер-пароль не соответствует требованиям"),
+    already_initialized: t("Хранилище на этом устройстве уже существует"),
+    locked: t("Сначала разблокируйте хранилище"),
+    entry_not_found: t("Запись не найдена"),
+    vault_too_large: t("Хранилище достигло допустимого размера"),
+    unsupported_telegram: t("Нужна новая версия Telegram"),
+    unsupported_storage: t("Локальное хранилище недоступно в этом клиенте Telegram"),
+    invalid_kdf_parameters: t("Параметры защиты хранилища не поддерживаются"),
+    random_unavailable: t("Не удалось получить безопасную случайность. Перезапустите Telegram"),
+    vault_operation_failed: t("Не удалось выполнить шифрование на этом устройстве"),
   };
   const storageFailure =
     error?.name === "TelegramStorageError" ||
@@ -367,8 +381,8 @@ function showError(error) {
     String(code).includes("failed") ||
     String(code).includes("readback");
   const fallback = storageFailure
-    ? "Не удалось сохранить данные в Telegram"
-    : "Операция не выполнена";
+    ? t("Не удалось сохранить данные в Telegram")
+    : t("Операция не выполнена");
   const diagnostic = error?.operation ? `${error.operation}:${code}` : String(code);
   console.error("Pocket Vault operation failed", {
     name: error?.name ?? typeof error,
@@ -376,7 +390,7 @@ function showError(error) {
     operation: error?.operation ?? null,
     nativeCode: error?.nativeCode ?? null,
   });
-  showToast(messages[code] ?? `${fallback} · Код: ${diagnostic.slice(0, 64)}`);
+  showToast(messages[code] ?? `${fallback} · ${t("Код")}: ${diagnostic.slice(0, 64)}`);
 }
 
 function togglePassword(button) {
@@ -384,18 +398,18 @@ function togglePassword(button) {
   if (!input) return;
   const visible = input.type === "password";
   input.type = visible ? "text" : "password";
-  button.textContent = visible ? "Скрыть" : "Показать";
+  button.textContent = visible ? t("Скрыть") : t("Показать");
 }
 
 function updateStrength(input) {
   const length = Array.from(input.value).length;
   const score = length === 0 ? 0 : length < 12 ? 1 : length < 16 ? 2 : length < 24 ? 3 : 4;
   const labels = [
-    "Лучше всего — 6–7 случайных слов",
-    "Слишком короткий мастер-пароль",
-    "Добавьте ещё несколько слов",
-    "Хорошая длина",
-    "Отличная длина",
+    t("Лучше всего — 6–7 случайных слов"),
+    t("Слишком короткий мастер-пароль"),
+    t("Добавьте ещё несколько слов"),
+    t("Хорошая длина"),
+    t("Отличная длина"),
   ];
   document.querySelectorAll(".strength-bars i").forEach((bar, index) => bar.classList.toggle("is-filled", index < score));
   const label = document.querySelector("#strength-label");
@@ -424,8 +438,8 @@ function toggleSecret() {
     value.textContent = secret;
     secret = null;
     value.classList.add("is-visible");
-    button.querySelector("span").textContent = "Скрыть";
-    badge.lastChild.textContent = " Показан";
+    button.querySelector("span").textContent = t("Скрыть");
+    badge.lastChild.textContent = ` ${t("Показан")}`;
     revealTimer = setTimeout(hideVisibleSecret, 15_000);
   } catch (error) {
     showError(error);
@@ -441,8 +455,8 @@ function hideVisibleSecret() {
     value.textContent = "••••••••••••••";
     value.classList.remove("is-visible");
   }
-  if (button) button.querySelector("span").textContent = "Показать";
-  if (badge) badge.lastChild.textContent = " Скрыт";
+  if (button) button.querySelector("span").textContent = t("Показать");
+  if (badge) badge.lastChild.textContent = ` ${t("Скрыт")}`;
 }
 
 async function copySecret() {
@@ -450,9 +464,9 @@ async function copySecret() {
     let secret = controller.getSelectedSecret();
     await navigator.clipboard.writeText(secret);
     secret = null;
-    showToast("Секрет скопирован");
+    showToast(t("Секрет скопирован"));
   } catch (error) {
-    showToast(error?.name === "NotAllowedError" ? "Браузер не разрешил доступ к буферу обмена" : "Не удалось скопировать секрет");
+    showToast(error?.name === "NotAllowedError" ? t("Браузер не разрешил доступ к буферу обмена") : t("Не удалось скопировать секрет"));
   }
 }
 
@@ -480,6 +494,14 @@ function setTheme(theme) {
   });
 }
 
+function switchLanguage() {
+  toggleLanguage();
+  if (currentScreen === "loading") renderLoading();
+  else if (runtime?.mode === "preview" && ["vault", "detail"].includes(currentScreen)) {
+    renderScreen(currentScreen);
+  }
+}
+
 function requestReviewScreen(screen) {
   if (runtime?.mode !== "preview") return;
   if (["vault", "settings", "destroy"].includes(screen)) {
@@ -494,6 +516,9 @@ function requestReviewScreen(screen) {
 }
 
 function bindGlobalInteractions() {
+  document.querySelectorAll("[data-language-toggle], [data-language-switch]").forEach((button) => {
+    button.addEventListener("click", switchLanguage);
+  });
   document.querySelectorAll("[data-screen]").forEach((button) => {
     button.addEventListener("click", () => requestReviewScreen(button.dataset.screen));
   });
@@ -543,6 +568,7 @@ function bindKeyboardAvoidance() {
 }
 
 function formatEntryCount(count) {
+  if (getLanguage() === "en") return `${count} ${count === 1 ? "entry" : "entries"}`;
   const mod100 = count % 100;
   const mod10 = count % 10;
   const noun = mod100 >= 11 && mod100 <= 14 ? "записей" : mod10 === 1 ? "запись" : mod10 >= 2 && mod10 <= 4 ? "записи" : "записей";
@@ -554,13 +580,13 @@ function formatRelativeDate(timestamp) {
   const today = new Date();
   const day = 86_400_000;
   const difference = Math.round((startOfDay(date) - startOfDay(today)) / day);
-  if (difference === 0) return "сегодня";
-  if (difference === -1) return "вчера";
-  return new Intl.DateTimeFormat("ru", { day: "numeric", month: "short" }).format(date);
+  if (difference === 0) return t("сегодня");
+  if (difference === -1) return t("вчера");
+  return new Intl.DateTimeFormat(getLocale(), { day: "numeric", month: "short" }).format(date);
 }
 
 function formatFullDate(timestamp) {
-  return new Intl.DateTimeFormat("ru", { dateStyle: "medium", timeStyle: "short" }).format(new Date(timestamp));
+  return new Intl.DateTimeFormat(getLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(timestamp));
 }
 
 function startOfDay(date) {
@@ -572,6 +598,7 @@ function nextPaint() {
 }
 
 async function boot() {
+  initializeLanguage(globalThis);
   renderLoading();
   bindGlobalInteractions();
   setTheme("light");

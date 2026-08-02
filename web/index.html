@@ -51,6 +51,7 @@
             <button type="button" data-theme-choice="dark">Тёмная</button>
           </div>
         </div>
+        <button class="language-button language-button--panel" type="button" data-language-toggle>EN</button>
 
         <p class="review-note">Preview-режим хранит зашифрованные данные только в памяти вкладки — до перезагрузки.</p>
       </aside>
@@ -99,9 +100,12 @@
             </span>
             <span>Pocket Vault</span>
           </div>
-          <button class="info-icon" type="button" data-open-sheet="security-sheet" aria-label="Как защищены данные">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="M12 10v6m0-9v.2"/></svg>
-          </button>
+          <div class="header-actions">
+            <button class="language-button" type="button" data-language-toggle>EN</button>
+            <button class="info-icon" type="button" data-open-sheet="security-sheet" aria-label="Как защищены данные">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="M12 10v6m0-9v.2"/></svg>
+            </button>
+          </div>
         </header>
 
         <div class="onboarding-copy">
@@ -165,11 +169,14 @@
 
     <template id="screen-locked">
       <section class="screen screen--locked">
-        <header class="simple-brand simple-brand--centered">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
-          </span>
-          <span>Pocket Vault</span>
+        <header class="onboarding-header">
+          <div class="simple-brand">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
+            </span>
+            <span>Pocket Vault</span>
+          </div>
+          <button class="language-button" type="button" data-language-toggle>EN</button>
         </header>
 
         <div class="lock-hero">
@@ -419,6 +426,15 @@
         </div>
 
         <div class="settings-group">
+          <p class="group-label">Интерфейс</p>
+          <button class="settings-row" type="button" data-language-switch>
+            <span class="settings-icon settings-icon--lilac"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
+            <span><strong>Язык</strong><small data-current-language>Русский</small></span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <div class="settings-group">
           <p class="group-label">О приложении</p>
           <div class="settings-row settings-row--static"><span>Версия</span><strong class="row-value">MVP 0.1</strong></div>
           <button class="settings-row settings-row--link" type="button" data-source><span>Исходный код</span><svg class="external-icon" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg></button>
@@ -474,11 +490,14 @@
 
     <template id="screen-unsupported">
       <section class="screen screen--unsupported">
-        <header class="simple-brand">
-          <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
-          </span>
-          <span>Pocket Vault</span>
+        <header class="onboarding-header">
+          <div class="simple-brand">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
+            </span>
+            <span>Pocket Vault</span>
+          </div>
+          <button class="language-button" type="button" data-language-toggle>EN</button>
         </header>
 
         <div class="unsupported-content">

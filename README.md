@@ -68,6 +68,10 @@ node scripts/serve.mjs
 
 Then open `http://127.0.0.1:4173`.
 
+The interface is available in Russian and English. On first launch it follows
+the Telegram user language, with English as the fallback for other languages.
+A manual language choice is stored locally in the current client.
+
 Localhost enables a safe preview runtime. It uses the same WASM module,
 controller, and persistence protocol, but its callback storage exists only in
 the current tab's memory and is cleared on reload. This fallback is disabled in
