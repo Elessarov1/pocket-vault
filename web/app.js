@@ -36,6 +36,7 @@ let runtime;
 let currentScreen = "loading";
 let toastTimer;
 let revealTimer;
+let authenticationTimer;
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -591,6 +592,21 @@ function bindLifecycle() {
   });
 }
 
+function scheduleAuthenticationExpiry() {
+  clearTimeout(authenticationTimer);
+  const deadline = controller?.authenticationDeadline();
+  if (deadline === null || deadline === undefined) return;
+  const delay = Math.max(0, deadline - Date.now());
+  authenticationTimer = setTimeout(async () => {
+    try {
+      const expired = await controller.expireAuthentication(Date.now());
+      if (!expired) scheduleAuthenticationExpiry();
+    } catch (error) {
+      showError(error);
+    }
+  }, delay);
+}
+
 function bindKeyboardAvoidance() {
   const revealActiveControl = () => {
     if (runtime?.mode !== "telegram") return;
@@ -659,7 +675,10 @@ async function boot() {
 
   document.body.classList.add(`runtime-${runtime.mode}`);
   controller = new VaultAppController({ persistence: runtime.persistence });
-  controller.subscribe((state) => renderScreen(state.screen));
+  controller.subscribe((state) => {
+    renderScreen(state.screen);
+    scheduleAuthenticationExpiry();
+  });
   bindKeyboardAvoidance();
 
   if (runtime.mode === "preview") {

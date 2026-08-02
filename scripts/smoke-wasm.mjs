@@ -4,7 +4,10 @@ import { readFile } from "node:fs/promises";
 import { VaultAppController } from "../web/src/app-controller.js";
 import { PreviewWebApp } from "../web/src/preview-runtime.js";
 import { TelegramDeviceStorage, TelegramSecureStorage } from "../web/src/storage.js";
-import { VaultPersistence } from "../web/src/vault-persistence.js";
+import {
+  VaultPersistence,
+  nextLocalDayStart,
+} from "../web/src/vault-persistence.js";
 import { initSync, VaultSession } from "../web/pkg/vault_wasm.js";
 
 const bytes = await readFile(new URL("../web/pkg/vault_wasm_bg.wasm", import.meta.url));
@@ -53,6 +56,11 @@ await controller.changeMasterPassword(
 controller.lock();
 await controller.resume();
 assert.equal(controller.snapshot().screen, "vault");
+controller.lock();
+timestamp = nextLocalDayStart(timestamp);
+await controller.resume();
+assert.equal(controller.snapshot().screen, "locked");
+await controller.unlock("новая-фраза-следует-за-белым-кроликом");
 await assert.rejects(persistence.openSession("следуй-за-белым-кроликом-домой"));
 controller.openEntry(id);
 assert.equal(controller.getSelectedSecret(), "новый-секрет");
@@ -61,4 +69,4 @@ assert.equal(controller.snapshot().entries.length, 0);
 await controller.destroy();
 assert.equal((await persistence.inspectState()).state, "uninitialized");
 
-console.log("WASM smoke test passed: CRUD, quick unlock, manual lock, password change, destroy");
+console.log("WASM smoke test passed: CRUD, midnight expiry, manual lock, password change, destroy");

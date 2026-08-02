@@ -11,6 +11,7 @@ import {
   SLOT_B_KEY,
   VaultPersistence,
   bindSessionAutoLock,
+  nextLocalDayStart,
 } from "../src/vault-persistence.js";
 import { MockWebApp } from "./helpers/mock-telegram.js";
 
@@ -92,6 +93,13 @@ function createSession() {
   };
 }
 
+test("quick unlock deadline is the next local calendar midnight", () => {
+  const lateEvening = new Date(2026, 7, 2, 23, 59, 30, 0).getTime();
+  const nextMidnight = new Date(2026, 7, 3, 0, 0, 0, 0).getTime();
+
+  assert.equal(nextLocalDayStart(lateEvening), nextMidnight);
+});
+
 test("first creation stores slot, metadata, then pointer with readback", async () => {
   const { persistence, webApp } = createHarness();
   const session = await persistence.createSession("a long master phrase", 100);
@@ -162,17 +170,35 @@ test("destroy needs no password and clears every vault key", async () => {
   assert.equal(webApp.SecureStorage.values.has(MASTER_PASSWORD_CACHE_KEY), false);
 });
 
-test("cached password opens automatically unless the user locked manually", async () => {
+test("cached password opens only until local midnight unless the user locked manually", async () => {
   const { persistence, webApp } = createHarness();
   webApp.DeviceStorage.values.set(META_KEY, "metadata");
   webApp.DeviceStorage.values.set(SLOT_A_KEY, "slot-a-0");
-  await persistence.rememberMasterPassword("a long master phrase");
+  const rememberedAt = 1_800_000_000_000;
+  const expiresAt = nextLocalDayStart(rememberedAt);
+  await persistence.rememberMasterPassword("a long master phrase", rememberedAt);
 
-  assert.notEqual(await persistence.openCachedSession(), null);
+  assert.notEqual(await persistence.openCachedSession(expiresAt - 1), null);
   await persistence.markManualLock();
-  assert.equal(await persistence.openCachedSession(), null);
+  assert.equal(await persistence.openCachedSession(rememberedAt + 1), null);
   await persistence.clearManualLock();
-  assert.notEqual(await persistence.openCachedSession(), null);
+  assert.notEqual(await persistence.openCachedSession(rememberedAt + 1), null);
+});
+
+test("midnight-expired and legacy password caches are removed instead of opening the vault", async () => {
+  const { persistence, webApp } = createHarness();
+  webApp.DeviceStorage.values.set(META_KEY, "metadata");
+  webApp.DeviceStorage.values.set(SLOT_A_KEY, "slot-a-0");
+  const rememberedAt = 1_800_000_000_000;
+  const expiresAt = nextLocalDayStart(rememberedAt);
+  await persistence.rememberMasterPassword("a long master phrase", rememberedAt);
+
+  assert.equal(await persistence.openCachedSession(expiresAt), null);
+  assert.equal(webApp.SecureStorage.values.has(MASTER_PASSWORD_CACHE_KEY), false);
+
+  webApp.SecureStorage.values.set(MASTER_PASSWORD_CACHE_KEY, "legacy raw password");
+  assert.equal(await persistence.openCachedSession(rememberedAt), null);
+  assert.equal(webApp.SecureStorage.values.has(MASTER_PASSWORD_CACHE_KEY), false);
 });
 
 test("password change persists and verifies metadata before committing", async () => {

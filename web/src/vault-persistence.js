@@ -9,6 +9,8 @@ export const MASTER_PASSWORD_CACHE_KEY = "master_password_cache_v1";
 
 const VAULT_DEVICE_KEYS = [SLOT_A_KEY, SLOT_B_KEY, ACTIVE_SLOT_KEY, META_KEY, MANUAL_LOCK_KEY];
 const ALLOWED_SLOT_KEYS = new Set([SLOT_A_KEY, SLOT_B_KEY]);
+const MASTER_PASSWORD_CACHE_VERSION = 1;
+const MAX_LOCAL_DAY_DURATION_MS = 26 * 60 * 60 * 1_000;
 
 export class VaultPersistenceError extends Error {
   constructor(code) {
@@ -76,13 +78,17 @@ export class VaultPersistence {
     }
   }
 
-  async openCachedSession() {
+  async openCachedSession(now = Date.now()) {
     if ((await this.device.get(MANUAL_LOCK_KEY)) !== null) return null;
-    const masterPassword = await this.readRememberedMasterPassword();
-    if (masterPassword === null) return null;
+    const cached = await this.readRememberedMasterPassword(now);
+    if (cached === null) return null;
 
     try {
-      return await this.openSession(masterPassword);
+      const session = await this.openSession(cached.masterPassword);
+      return {
+        session,
+        expiresAt: cached.expiresAt,
+      };
     } catch (error) {
       if (errorCode(error) === "cannot_open_vault") {
         await this.forgetMasterPassword();
@@ -92,10 +98,17 @@ export class VaultPersistence {
     }
   }
 
-  async rememberMasterPassword(masterPassword) {
+  async rememberMasterPassword(masterPassword, rememberedAt = Date.now()) {
     if (!this.secure) return false;
+    const expiresAt = nextLocalDayStart(rememberedAt);
+    const cacheValue = JSON.stringify({
+      version: MASTER_PASSWORD_CACHE_VERSION,
+      masterPassword,
+      rememberedAt,
+      expiresAt,
+    });
     try {
-      await this.secure.setVerified(MASTER_PASSWORD_CACHE_KEY, masterPassword);
+      await this.secure.setVerified(MASTER_PASSWORD_CACHE_KEY, cacheValue);
       return true;
     } catch {
       return false;
@@ -112,11 +125,28 @@ export class VaultPersistence {
     }
   }
 
-  async readRememberedMasterPassword() {
+  async readRememberedMasterPassword(now = Date.now()) {
     if (!this.secure) return null;
     try {
-      return await this.secure.get(MASTER_PASSWORD_CACHE_KEY);
+      const rawValue = await this.secure.get(MASTER_PASSWORD_CACHE_KEY);
+      if (rawValue === null) return null;
+      const cached = JSON.parse(rawValue);
+      const duration = cached.expiresAt - cached.rememberedAt;
+      const valid = cached.version === MASTER_PASSWORD_CACHE_VERSION
+        && typeof cached.masterPassword === "string"
+        && cached.masterPassword.length > 0
+        && Number.isSafeInteger(cached.rememberedAt)
+        && Number.isSafeInteger(cached.expiresAt)
+        && Number.isSafeInteger(now)
+        && duration > 0
+        && duration <= MAX_LOCAL_DAY_DURATION_MS
+        && now >= cached.rememberedAt
+        && now < cached.expiresAt;
+      if (valid) return cached;
+      await this.forgetMasterPassword();
+      return null;
     } catch {
+      await this.forgetMasterPassword();
       return null;
     }
   }
@@ -215,6 +245,13 @@ export class VaultPersistence {
 
 function errorCode(error) {
   return typeof error === "string" ? error : error?.code ?? error?.message;
+}
+
+export function nextLocalDayStart(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return Number.NaN;
+  date.setHours(24, 0, 0, 0);
+  return date.getTime();
 }
 
 export function bindSessionAutoLock(webApp, getSession, hideSecrets = () => {}) {

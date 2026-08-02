@@ -1,3 +1,5 @@
+import { nextLocalDayStart } from "./vault-persistence.js";
+
 export class VaultAppController {
   constructor({ persistence, now = () => Date.now() }) {
     this.persistence = persistence;
@@ -5,6 +7,7 @@ export class VaultAppController {
     this.session = null;
     this.resumePromise = null;
     this.lockRevision = 0;
+    this.authenticationExpiresAt = null;
     this.listeners = new Set();
     this.state = Object.freeze({ screen: "loading", entries: [], selectedId: null, editingId: null });
   }
@@ -21,7 +24,9 @@ export class VaultAppController {
   async initialize() {
     const status = await this.persistence.inspectState();
     if (status.state === "locked") {
-      this.session = await this.persistence.openCachedSession();
+      const cached = await this.persistence.openCachedSession(this.now());
+      this.session = cached?.session ?? null;
+      this.authenticationExpiresAt = cached?.expiresAt ?? null;
     }
     const screen = status.state === "uninitialized"
       ? "onboarding"
@@ -38,8 +43,9 @@ export class VaultAppController {
   }
 
   async create(masterPassword) {
-    this.session = await this.persistence.createSession(masterPassword, this.now());
-    await this.enableAutoUnlock(masterPassword);
+    const now = this.now();
+    this.session = await this.persistence.createSession(masterPassword, now);
+    await this.enableAutoUnlock(masterPassword, now);
     this.refreshEntries();
     this.setState({ screen: "vault", selectedId: null, editingId: null });
   }
@@ -55,6 +61,7 @@ export class VaultAppController {
     this.lockRevision += 1;
     this.session?.lock();
     this.session = null;
+    this.authenticationExpiresAt = null;
     this.setState({ screen: "locked", entries: [], selectedId: null, editingId: null });
   }
 
@@ -71,12 +78,14 @@ export class VaultAppController {
     if (this.resumePromise) return this.resumePromise;
     const revision = this.lockRevision;
     this.resumePromise = (async () => {
-      const session = await this.persistence.openCachedSession();
+      const cached = await this.persistence.openCachedSession(this.now());
+      const session = cached?.session ?? null;
       if (revision !== this.lockRevision) {
         session?.lock();
         return this.snapshot();
       }
       this.session = session;
+      this.authenticationExpiresAt = cached?.expiresAt ?? null;
       if (!this.session) return this.snapshot();
       this.refreshEntries();
       this.setState({ screen: "vault", selectedId: null, editingId: null });
@@ -178,16 +187,35 @@ export class VaultAppController {
     const session = this.session;
     await this.persistence.destroySession(session);
     this.session = null;
+    this.authenticationExpiresAt = null;
     this.setState({ screen: "onboarding", entries: [], selectedId: null, editingId: null });
   }
 
-  async enableAutoUnlock(masterPassword) {
+  async enableAutoUnlock(masterPassword, rememberedAt = this.now()) {
+    this.authenticationExpiresAt = nextLocalDayStart(rememberedAt);
     try {
       await this.persistence.clearManualLock();
     } catch {
       // The current session stays usable; the next launch will ask again.
     }
-    await this.persistence.rememberMasterPassword(masterPassword);
+    await this.persistence.rememberMasterPassword(masterPassword, rememberedAt);
+  }
+
+  authenticationDeadline() {
+    return this.session ? this.authenticationExpiresAt : null;
+  }
+
+  async expireAuthentication(now = this.now()) {
+    if (
+      !this.session
+      || this.authenticationExpiresAt === null
+      || now < this.authenticationExpiresAt
+    ) {
+      return false;
+    }
+    await this.persistence.forgetMasterPassword();
+    this.lock();
+    return true;
   }
 
   refreshEntries() {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { VaultAppController } from "../src/app-controller.js";
+import { nextLocalDayStart } from "../src/vault-persistence.js";
 
 function createSession() {
   const entries = [];
@@ -46,8 +47,8 @@ function createHarness(initialState = "uninitialized") {
     async inspectState() {
       return { state: initialState };
     },
-    async openCachedSession() {
-      calls.push(["open-cached"]);
+    async openCachedSession(now) {
+      calls.push(["open-cached", now]);
       return persistence.cachedSession ?? null;
     },
     async createSession(password) {
@@ -61,8 +62,8 @@ function createHarness(initialState = "uninitialized") {
     async saveSession(value) {
       calls.push(["save", value]);
     },
-    async rememberMasterPassword(password) {
-      calls.push(["remember", password]);
+    async rememberMasterPassword(password, rememberedAt) {
+      calls.push(["remember", password, rememberedAt]);
       return true;
     },
     async clearManualLock() {
@@ -70,6 +71,10 @@ function createHarness(initialState = "uninitialized") {
     },
     async markManualLock() {
       calls.push(["manual-lock"]);
+    },
+    async forgetMasterPassword() {
+      calls.push(["forget"]);
+      return true;
     },
     async changeMasterPassword(value, current, next) {
       calls.push(["change-password", value, current, next]);
@@ -140,10 +145,11 @@ test("forgot-password destruction works without an unlocked session", async () =
 });
 
 test("a cached password opens a locked vault automatically", async () => {
-  const { controller, persistence, session } = createHarness("locked");
-  persistence.cachedSession = session;
+  const { controller, persistence, session, calls } = createHarness("locked");
+  persistence.cachedSession = { session, expiresAt: nextLocalDayStart(1_000) };
 
   assert.equal((await controller.initialize()).screen, "vault");
+  assert.deepEqual(calls.at(-1), ["open-cached", 1_000]);
 });
 
 test("manual lock persists intent and resume stays locked", async () => {
@@ -156,6 +162,20 @@ test("manual lock persists intent and resume stays locked", async () => {
   assert.equal((await controller.resume()).screen, "locked");
 });
 
+test("an open session expires at the next local midnight", async () => {
+  const { controller, session, calls } = createHarness();
+  await controller.create("long master phrase");
+  const deadline = nextLocalDayStart(1_000);
+
+  assert.equal(controller.authenticationDeadline(), deadline);
+  assert.equal(await controller.expireAuthentication(deadline - 1), false);
+  assert.equal(session.isLocked, false);
+  assert.equal(await controller.expireAuthentication(deadline), true);
+  assert.equal(session.isLocked, true);
+  assert.equal(controller.snapshot().screen, "locked");
+  assert.equal(calls.some(([name]) => name === "forget"), true);
+});
+
 test("master password change verifies the current password and refreshes the cache", async () => {
   const { controller, calls } = createHarness();
   await controller.create("long master phrase");
@@ -163,7 +183,7 @@ test("master password change verifies the current password and refreshes the cac
 
   assert.equal(controller.snapshot().screen, "settings");
   assert.equal(calls.some(([name]) => name === "change-password"), true);
-  assert.deepEqual(calls.at(-1), ["remember", "new long master phrase"]);
+  assert.deepEqual(calls.at(-1), ["remember", "new long master phrase", 1_000]);
 });
 
 test("a wrong current password keeps the unlocked session available for correction", async () => {

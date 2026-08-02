@@ -165,7 +165,7 @@
             </span>
             <h3 id="security-sheet-title">Как защищены записи</h3>
             <p>Записи шифруются на устройстве до сохранения. В DeviceStorage хранится только шифротекст.</p>
-            <p>Для быстрого входа мастер-пароль может храниться в защищённом хранилище устройства. Он не отправляется разработчику.</p>
+            <p>Для быстрого входа мастер-пароль хранится в защищённом хранилище устройства до конца текущего дня. Он не отправляется разработчику.</p>
             <button class="button button--primary button--full" type="button" data-close-sheet>Понятно</button>
           </section>
         </div>
@@ -511,7 +511,7 @@
             <label for="confirm-new-master-password">Повторите новый пароль</label>
             <input id="confirm-new-master-password" type="password" autocomplete="new-password" placeholder="Введите ещё раз" required>
           </div>
-          <p class="form-note">После смены для быстрого входа будет сохранён только новый мастер-пароль.</p>
+          <p class="form-note">После смены новый мастер-пароль будет сохранён для быстрого входа до конца текущего дня.</p>
           <button class="button button--primary button--full" type="submit">Сменить мастер-пароль</button>
         </form>
       </section>
