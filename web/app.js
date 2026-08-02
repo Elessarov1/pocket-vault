@@ -198,7 +198,7 @@ function populateEntryForm() {
   if (!entry) return;
   document.querySelector("#record-form-title").textContent = t("Изменить запись");
   document.querySelector("#record-form-eyebrow").textContent = t("Сохранённый пароль или секрет");
-  document.querySelector("#record-form-heading").textContent = t("Обновите защищённую запись.");
+  document.querySelector("#record-form-heading").textContent = t("Обновите запись");
   document.querySelector("#record-title").value = entry.title;
   document.querySelector("#record-secret").value = entry.secret;
   document.querySelector("#record-description").value = entry.description ?? "";
@@ -249,7 +249,6 @@ function bindScreenInteractions() {
   document.querySelector("#record-form")?.addEventListener("submit", handleSaveEntry);
   document.querySelector("[data-reveal]")?.addEventListener("click", toggleSecret);
   document.querySelector("[data-copy]")?.addEventListener("click", copySecret);
-  document.querySelector("[data-menu]")?.addEventListener("click", () => showToast(t("Изменить или удалить запись можно ниже")));
   document.querySelector("[data-delete-entry]")?.addEventListener("click", () => openSheet("delete-entry-sheet"));
   document.querySelector("#delete-entry-form")?.addEventListener("submit", handleDeleteEntry);
   document.querySelector("[data-source]")?.addEventListener("click", () => {

@@ -115,7 +115,7 @@
 
         <div class="onboarding-copy">
           <h2>Ваши пароли.<br>Только ваши.</h2>
-          <p>Храните пароли от сайтов и приложений, ключи, PIN-коды и приватные заметки на этом устройстве.</p>
+          <p>Пароли, ключи, PIN-коды и заметки — зашифрованы на этом устройстве.</p>
         </div>
 
         <form class="surface-card creation-form" id="creation-form">
@@ -138,7 +138,7 @@
             <div class="passphrase-example__content">
               <span>Пример запоминаемого формата</span>
               <code>следуй-за-белым-кроликом</code>
-              <small>Не копируйте пример буквально — добавьте ещё 2–3 собственных случайных слова.</small>
+              <small>Добавьте ещё 2–3 случайных слова.</small>
             </div>
           </details>
           <div class="field">
@@ -147,12 +147,10 @@
           </div>
           <label class="consent-row">
             <input type="checkbox" id="no-recovery-confirm">
-            <span>Я понимаю: если потеряю мастер-пароль или это устройство, восстановить записи будет невозможно.</span>
+            <span>Я понимаю: без мастер-пароля восстановить записи невозможно.</span>
           </label>
           <button class="button button--primary button--full" type="submit">Создать хранилище</button>
         </form>
-
-        <div class="privacy-line"><span></span>Локальное шифрование · нет облака · нет восстановления</div>
 
         <div class="sheet-backdrop" id="security-sheet" hidden>
           <section class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="security-sheet-title">
@@ -164,8 +162,8 @@
               <svg viewBox="0 0 24 24"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m9.2 11.8 1.8 1.8 3.8-4"/></svg>
             </span>
             <h3 id="security-sheet-title">Как защищены записи</h3>
-            <p>Все поля шифруются на устройстве до сохранения. В локальном хранилище Telegram остаётся только шифротекст.</p>
-            <p>Мастер-пароль не сохраняется и не отправляется Telegram или разработчику. Используйте длинную уникальную фразу.</p>
+            <p>Записи шифруются на устройстве до сохранения. Telegram получает только шифротекст.</p>
+            <p>Мастер-пароль не сохраняется и никуда не отправляется.</p>
             <button class="button button--primary button--full" type="button" data-close-sheet>Понятно</button>
           </section>
         </div>
@@ -194,9 +192,8 @@
           <div class="lock-orbit" aria-hidden="true">
             <svg viewBox="0 0 36 36"><rect x="8" y="15" width="20" height="15" rx="5"/><path d="M12.5 15v-4.2a5.5 5.5 0 0 1 11 0V15"/><circle cx="18" cy="22" r="2"/></svg>
           </div>
-          <p class="eyebrow">Хранилище заблокировано</p>
-          <h2>С возвращением.</h2>
-          <p>Введите мастер-пароль. Он нужен при каждом новом запуске.</p>
+          <h2>Разблокируйте хранилище</h2>
+          <p>Введите мастер-пароль.</p>
         </div>
 
         <form class="unlock-form" id="unlock-form">
@@ -213,7 +210,7 @@
 
         <div class="local-footnote">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m9.2 11.8 1.8 1.8 3.8-4"/></svg>
-          <p><strong>Зашифровано на этом устройстве</strong><span>Telegram и разработчик не получают ваши пароли в открытом виде.</span></p>
+          <p><strong>Telegram получает только шифротекст</strong></p>
         </div>
 
         <div class="sheet-backdrop" id="forgot-sheet" hidden>
@@ -228,10 +225,10 @@
                 <svg viewBox="0 0 24 24"><path d="M12 3 2.7 20h18.6L12 3Z"/><path d="M12 9v5m0 3v.2"/></svg>
               </span>
               <h3 id="forgot-sheet-title">Доступ восстановить нельзя</h3>
-              <p>Без мастер-пароля записи невозможно расшифровать. Можно только удалить локальное хранилище и начать заново.</p>
+              <p>Без мастер-пароля записи не расшифровать. Можно только удалить хранилище и начать заново.</p>
               <div class="reset-warning">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m5 5 14 14"/></svg>
-                <p><strong>Без проверки владельца</strong><span>Любой человек с доступом к этому Telegram сможет удалить хранилище, но не сможет прочитать записи.</span></p>
+                <p><strong>Удаление без проверки</strong><span>Человек с доступом к этому Telegram сможет удалить хранилище, но не прочитать записи.</span></p>
               </div>
               <button class="button button--danger button--full" type="button" data-start-unverified-reset>Перейти к удалению</button>
               <button class="button button--ghost button--full" type="button" data-close-sheet>Отмена</button>
@@ -284,7 +281,6 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg>
           <span class="visually-hidden">Поиск по записям</span>
           <input id="entry-search" type="search" placeholder="Поиск по названию">
-          <kbd>⌘ K</kbd>
         </label>
 
         <div class="list-heading"><span>Недавние</span><button type="button" data-sort>По обновлению <b>↓</b></button></div>
@@ -307,9 +303,7 @@
             <span>Хранилище</span>
           </button>
           <span class="header-title">Запись</span>
-          <button class="icon-button" type="button" data-menu aria-label="Другие действия">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
-          </button>
+          <span class="header-spacer"></span>
         </header>
 
         <div class="record-hero">
@@ -381,8 +375,8 @@
 
         <div class="form-intro">
           <p class="eyebrow" id="record-form-eyebrow">Новый пароль или секрет</p>
-          <h2 id="record-form-heading">Добавьте то, что важно защитить.</h2>
-          <p>Название и описание тоже будут зашифрованы.</p>
+          <h2 id="record-form-heading">Добавьте защищённую запись</h2>
+          <p>Все поля шифруются.</p>
         </div>
 
         <form class="record-form" id="record-form">
@@ -403,10 +397,6 @@
             <textarea id="record-description" maxlength="2000" placeholder="Где используется или что важно помнить"></textarea>
             <small><span>0</span> / 2000</small>
           </div>
-          <div class="encrypted-note">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-            Все поля шифруются локально перед сохранением.
-          </div>
           <button class="button button--primary button--full" type="submit">Сохранить запись</button>
         </form>
       </section>
@@ -422,11 +412,6 @@
           <span class="header-title">Настройки</span>
           <span class="header-spacer"></span>
         </header>
-
-        <div class="settings-heading">
-          <p class="eyebrow">Pocket Vault</p>
-          <h2>Настройки</h2>
-        </div>
 
         <div class="settings-group">
           <p class="group-label">Безопасность</p>
@@ -474,7 +459,6 @@
           </button>
         </div>
 
-        <p class="settings-footer">Открытые пароли не отправляются Telegram или разработчику.<br>Нет аккаунта, сервера и резервного ключа.</p>
       </section>
     </template>
 
@@ -535,14 +519,10 @@
           <div class="phone-warning" aria-hidden="true">
             <svg viewBox="0 0 64 64"><rect x="14" y="5" width="36" height="54" rx="9"/><path d="M27 11h10M29 52h6"/><circle cx="47" cy="43" r="11"/><path d="M47 38v6m0 4v.2"/></svg>
           </div>
-          <p class="eyebrow">Нужен актуальный Telegram</p>
-          <h2>Локальное хранилище недоступно.</h2>
-          <p>Обновите Telegram и попробуйте ещё раз. Pocket Vault требует DeviceStorage, доступный в актуальных мобильных и десктопных клиентах.</p>
+          <p class="eyebrow">Pocket Vault</p>
+          <h2>Обновите Telegram</h2>
+          <p>Нужен актуальный мобильный или десктопный клиент с локальным хранилищем.</p>
           <button class="button button--primary button--full" type="button" data-check-again>Проверить ещё раз</button>
-          <div class="no-fallback">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/></svg>
-            <span>Без постоянного локального хранилища записи не создаются.</span>
-          </div>
         </div>
       </section>
     </template>
