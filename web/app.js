@@ -9,6 +9,12 @@ import {
   translateRoot,
 } from "./src/i18n.js";
 import { isPreviewLocation } from "./src/preview-runtime.js";
+import {
+  initializeTheme,
+  setTheme,
+  toggleTheme,
+  updateThemeControls,
+} from "./src/theme.js";
 
 const validScreens = new Set([
   "onboarding",
@@ -59,6 +65,7 @@ function renderScreen(name) {
   currentScreen = name;
   appScreen.replaceChildren(template.content.cloneNode(true));
   translateRoot(appScreen);
+  updateThemeControls(appScreen);
   appScreen.scrollTop = 0;
   screenPicker.value = name;
   updateReviewNavigation(name);
@@ -201,6 +208,9 @@ function populateEntryForm() {
 function bindScreenInteractions() {
   document.querySelectorAll("[data-language-toggle], [data-language-switch]").forEach((button) => {
     button.addEventListener("click", switchLanguage);
+  });
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.addEventListener("click", switchTheme);
   });
   document.querySelectorAll("[data-go]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -486,20 +496,17 @@ function closeSheet(sheet) {
   }, 180);
 }
 
-function setTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  document.querySelector("meta[name='theme-color']").content = theme === "dark" ? "#171c19" : "#f2f0e9";
-  document.querySelectorAll("[data-theme-choice]").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.themeChoice === theme);
-  });
-}
-
 function switchLanguage() {
   toggleLanguage();
+  updateThemeControls(document);
   if (currentScreen === "loading") renderLoading();
   else if (runtime?.mode === "preview" && ["vault", "detail"].includes(currentScreen)) {
     renderScreen(currentScreen);
   }
+}
+
+function switchTheme() {
+  toggleTheme();
 }
 
 function requestReviewScreen(screen) {
@@ -519,6 +526,9 @@ function bindGlobalInteractions() {
   document.querySelectorAll("[data-language-toggle], [data-language-switch]").forEach((button) => {
     button.addEventListener("click", switchLanguage);
   });
+  document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
+    button.addEventListener("click", switchTheme);
+  });
   document.querySelectorAll("[data-screen]").forEach((button) => {
     button.addEventListener("click", () => requestReviewScreen(button.dataset.screen));
   });
@@ -526,9 +536,6 @@ function bindGlobalInteractions() {
     button.addEventListener("click", () => setTheme(button.dataset.themeChoice));
   });
   screenPicker.addEventListener("change", () => requestReviewScreen(screenPicker.value));
-  document.querySelector("#mobile-theme").addEventListener("click", () => {
-    setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
-  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeSheet(document.querySelector(".sheet-backdrop.is-open"));
     if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") {
@@ -599,9 +606,9 @@ function nextPaint() {
 
 async function boot() {
   initializeLanguage(globalThis);
+  initializeTheme(globalThis);
   renderLoading();
   bindGlobalInteractions();
-  setTheme("light");
 
   try {
     runtime = await initializeVaultRuntime(globalThis);

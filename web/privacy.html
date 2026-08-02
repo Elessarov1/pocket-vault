@@ -16,7 +16,13 @@
     <main class="privacy-document">
       <div class="privacy-toolbar">
         <a class="privacy-back" href="./">← Pocket Vault</a>
-        <button class="language-button" type="button" data-language-toggle>EN</button>
+        <div class="privacy-actions">
+          <button class="theme-icon-button" type="button" data-theme-toggle aria-label="Переключить на тёмную тему">
+            <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/></svg>
+            <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42M7.06 16.94l-1.42 1.42"/><circle cx="12" cy="12" r="4"/></svg>
+          </button>
+          <button class="language-button" type="button" data-language-toggle>EN</button>
+        </div>
       </div>
       <p class="eyebrow">Редакция от 2 августа 2026 года</p>
       <h1>Политика конфиденциальности</h1>
@@ -30,7 +36,7 @@
       <section>
         <h2>Где хранятся данные</h2>
         <p>Зашифрованный контейнер хранится локально через Telegram DeviceStorage. Ключ расшифрования получается из мастер-пароля только в памяти приложения и отдельно не сохраняется. Pocket Vault не имеет собственного сервера, аккаунтов и облачной синхронизации.</p>
-        <p>Выбранный язык интерфейса сохраняется отдельно в localStorage браузера и не содержит данных хранилища.</p>
+        <p>Выбранные язык и тема интерфейса сохраняются отдельно в localStorage браузера и не содержат данных хранилища.</p>
       </section>
 
       <section>

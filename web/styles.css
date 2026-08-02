@@ -16,6 +16,7 @@
   --blue: #c9dcf5;
   --lilac: #dbd3f4;
   --danger: #c94439;
+  --danger-ink: #fff;
   --danger-soft: #f7ded9;
   --field: #eeece5;
   --shadow: 0 28px 90px rgba(22, 28, 24, 0.18);
@@ -42,9 +43,37 @@
   --blue: #263f59;
   --lilac: #42385f;
   --danger: #f0786c;
+  --danger-ink: #2b0d09;
   --danger-soft: #4d2926;
   --field: #272e2a;
   --shadow: 0 30px 100px rgba(0, 0, 0, 0.45);
+}
+
+/* Use the device theme before JavaScript restores an explicit user choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --stage: #111512;
+    --panel: #090c0a;
+    --panel-muted: #89918b;
+    --paper: #171c19;
+    --surface: #202723;
+    --surface-soft: #2b312d;
+    --ink: #f2f5ef;
+    --muted: #a4ada6;
+    --line: #343c37;
+    --accent: #c7ef6f;
+    --accent-ink: #152007;
+    --mint: #254c3b;
+    --peach: #553a2b;
+    --blue: #263f59;
+    --lilac: #42385f;
+    --danger: #f0786c;
+    --danger-ink: #2b0d09;
+    --danger-soft: #4d2926;
+    --field: #272e2a;
+    --shadow: 0 30px 100px rgba(0, 0, 0, 0.45);
+  }
 }
 
 * {
@@ -748,7 +777,7 @@ svg {
 
 .button--danger {
   background: var(--danger);
-  color: #fff;
+  color: var(--danger-ink);
 }
 
 .button--danger-quiet,
@@ -885,6 +914,23 @@ svg {
 .icon-button svg,
 .theme-icon-button svg {
   width: 18px;
+}
+
+.theme-icon--sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon--moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon--sun {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .theme-icon--moon { display: none; }
+  :root:not([data-theme]) .theme-icon--sun { display: block; }
 }
 
 .vault-heading {
@@ -1346,6 +1392,7 @@ svg {
 .settings-icon--mint { background: var(--mint); }
 .settings-icon--blue { background: var(--blue); }
 .settings-icon--lilac { background: var(--lilac); }
+.settings-icon--peach { background: var(--peach); }
 
 .status-dot {
   color: #56865e;
@@ -1873,6 +1920,12 @@ body.runtime-telegram select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.privacy-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .privacy-back,

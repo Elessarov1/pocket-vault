@@ -71,6 +71,8 @@ Then open `http://127.0.0.1:4173`.
 The interface is available in Russian and English. On first launch it follows
 the Telegram user language, with English as the fallback for other languages.
 A manual language choice is stored locally in the current client.
+The color theme follows the device setting until the user switches it; a
+manual light or dark choice is then stored locally in the current client.
 
 Localhost enables a safe preview runtime. It uses the same WASM module,
 controller, and persistence protocol, but its callback storage exists only in
