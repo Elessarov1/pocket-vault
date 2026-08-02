@@ -4,7 +4,7 @@ use thiserror::Error;
 use vault_core::{
     ACTIVE_SLOT_KEY, ActiveSlotV1, EncryptedVaultSlotV1, EntryId, KdfConfig, META_KEY,
     MemoryStorage, NewVaultEntry, SLOT_A_KEY, SLOT_B_KEY, SlotId, TwoSlotRepository, UnlockedVault,
-    UpdateVaultEntry, VaultError, create_vault,
+    UpdateVaultEntry, VaultError, VaultMetaV1, create_vault, rewrap_vault_key,
 };
 
 #[derive(Debug, Error)]
@@ -25,6 +25,8 @@ pub enum BridgeError {
     Serialization,
     #[error("metadata is missing")]
     MissingMetadata,
+    #[error("no master password change is pending")]
+    NoPasswordChangePending,
 }
 
 impl BridgeError {
@@ -47,6 +49,7 @@ impl BridgeError {
             Self::PendingSlotNotVerified => "pending_slot_not_verified",
             Self::ReadbackMismatch => "storage_readback_mismatch",
             Self::Serialization => "serialization_failed",
+            Self::NoPasswordChangePending => "no_password_change_pending",
             Self::Vault(_) => "vault_operation_failed",
         }
     }
@@ -88,9 +91,16 @@ struct PendingSave {
     slot_verified: bool,
 }
 
+struct PendingPasswordChange {
+    metadata: VaultMetaV1,
+    metadata_json: String,
+}
+
 pub struct VaultBridge {
     vault: Option<UnlockedVault>,
+    metadata: Option<VaultMetaV1>,
     pending: Option<PendingSave>,
+    pending_password_change: Option<PendingPasswordChange>,
 }
 
 #[derive(Serialize)]
@@ -136,7 +146,9 @@ impl VaultBridge {
         Ok(CreateBundle {
             session: Self {
                 vault: Some(created.unlocked),
+                metadata: Some(created.metadata),
                 pending: None,
+                pending_password_change: None,
             },
             metadata_json,
             slot_key,
@@ -155,8 +167,11 @@ impl VaultBridge {
         master_password: &[u8],
         snapshot: StorageSnapshot,
     ) -> Result<OpenBundle, BridgeError> {
+        let metadata_json = snapshot.metadata_json.ok_or(BridgeError::MissingMetadata)?;
+        let metadata: VaultMetaV1 = serde_json::from_str(&metadata_json)
+            .map_err(|_| VaultError::InvalidMetadata("metadata JSON is invalid"))?;
         let mut repository = TwoSlotRepository::new(MemoryStorage::default());
-        insert_optional(repository.storage_mut(), META_KEY, snapshot.metadata_json);
+        insert_optional(repository.storage_mut(), META_KEY, Some(metadata_json));
         insert_optional(repository.storage_mut(), SLOT_A_KEY, snapshot.slot_a_json);
         insert_optional(repository.storage_mut(), SLOT_B_KEY, snapshot.slot_b_json);
         insert_optional(
@@ -164,10 +179,6 @@ impl VaultBridge {
             ACTIVE_SLOT_KEY,
             snapshot.active_pointer_json,
         );
-        if repository.storage().raw(META_KEY).is_none() {
-            return Err(BridgeError::MissingMetadata);
-        }
-
         let opened = repository.open(master_password)?;
         let repaired_pointer_json = opened
             .active_pointer_repaired
@@ -177,7 +188,9 @@ impl VaultBridge {
         Ok(OpenBundle {
             session: Self {
                 vault: Some(opened.vault),
+                metadata: Some(metadata),
                 pending: None,
+                pending_password_change: None,
             },
             repaired_pointer_json,
         })
@@ -422,14 +435,78 @@ impl VaultBridge {
         self.pending = None;
     }
 
+    /// Prepares metadata that wraps the existing data key with a new master password.
+    /// The caller must persist and read back the returned JSON before committing it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the session is locked or busy, the current password
+    /// is wrong, the new password is invalid, cryptography fails, or the candidate
+    /// metadata cannot be serialized.
+    pub fn prepare_password_change(
+        &mut self,
+        current_master_password: &[u8],
+        new_master_password: &[u8],
+        rng: &mut impl TryCryptoRng,
+    ) -> Result<String, BridgeError> {
+        self.ensure_mutable()?;
+        let metadata = self.metadata.as_ref().ok_or(BridgeError::MissingMetadata)?;
+        let candidate = rewrap_vault_key(
+            current_master_password,
+            new_master_password,
+            metadata,
+            self.vault_ref()?,
+            KdfConfig::default(),
+            rng,
+        )?;
+        let metadata_json =
+            serde_json::to_string(&candidate).map_err(|_| BridgeError::Serialization)?;
+        self.pending_password_change = Some(PendingPasswordChange {
+            metadata: candidate,
+            metadata_json: metadata_json.clone(),
+        });
+        Ok(metadata_json)
+    }
+
+    /// Commits a password change only after the exact metadata value is read back.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when no change is pending or the read-back metadata does
+    /// not exactly match the authenticated candidate.
+    pub fn commit_password_change(&mut self, readback_json: &str) -> Result<(), BridgeError> {
+        let pending = self
+            .pending_password_change
+            .as_ref()
+            .ok_or(BridgeError::NoPasswordChangePending)?;
+        if readback_json != pending.metadata_json {
+            return Err(BridgeError::ReadbackMismatch);
+        }
+        let readback: VaultMetaV1 =
+            serde_json::from_str(readback_json).map_err(|_| BridgeError::Serialization)?;
+        if readback != pending.metadata {
+            return Err(BridgeError::ReadbackMismatch);
+        }
+        let metadata = pending.metadata.clone();
+        self.metadata = Some(metadata);
+        self.pending_password_change = None;
+        Ok(())
+    }
+
+    pub fn cancel_password_change(&mut self) {
+        self.pending_password_change = None;
+    }
+
     /// Drops decrypted state and zeroizes its protected buffers.
     pub fn lock(&mut self) {
         self.pending = None;
+        self.pending_password_change = None;
+        self.metadata = None;
         self.vault = None;
     }
 
     fn ensure_mutable(&self) -> Result<(), BridgeError> {
-        if self.pending.is_some() {
+        if self.pending.is_some() || self.pending_password_change.is_some() {
             return Err(BridgeError::SavePending);
         }
         if self.vault.is_none() {
@@ -474,6 +551,7 @@ mod tests {
     use super::*;
 
     const MASTER: &[u8] = b"follow the white rabbit home";
+    const NEW_MASTER: &[u8] = b"a new phrase beyond the looking glass";
 
     fn rng(seed: u8) -> ChaCha20Rng {
         ChaCha20Rng::from_seed([seed; 32])
@@ -589,5 +667,55 @@ mod tests {
             created.session.list_entries_json().unwrap_err().code(),
             "locked"
         );
+    }
+
+    #[test]
+    fn password_change_requires_verified_metadata_readback() {
+        let mut created = create(8);
+        let old_metadata_json = created.metadata_json.clone();
+        let mut source = rng(9);
+        let changed_metadata_json = created
+            .session
+            .prepare_password_change(MASTER, NEW_MASTER, &mut source)
+            .unwrap();
+
+        assert_eq!(
+            created
+                .session
+                .commit_password_change(&old_metadata_json)
+                .unwrap_err()
+                .code(),
+            "storage_readback_mismatch"
+        );
+        created
+            .session
+            .commit_password_change(&changed_metadata_json)
+            .unwrap();
+
+        let snapshot = StorageSnapshot {
+            metadata_json: Some(changed_metadata_json),
+            slot_a_json: Some(created.slot_json),
+            slot_b_json: None,
+            active_pointer_json: Some(created.active_pointer_json),
+        };
+        assert!(VaultBridge::open(MASTER, snapshot.clone()).is_err());
+        assert!(VaultBridge::open(NEW_MASTER, snapshot).is_ok());
+    }
+
+    #[test]
+    fn wrong_current_password_does_not_lock_the_session() {
+        let mut created = create(10);
+        let mut source = rng(11);
+        let error = created
+            .session
+            .prepare_password_change(
+                b"definitely the wrong current phrase",
+                NEW_MASTER,
+                &mut source,
+            )
+            .unwrap_err();
+
+        assert_eq!(error.code(), "cannot_open_vault");
+        assert!(!created.session.is_locked());
     }
 }

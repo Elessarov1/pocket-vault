@@ -3,7 +3,7 @@ use rand_core::{SeedableRng, TryCryptoRng, TryRng};
 use serde_json::Value;
 use vault_core::{
     KdfConfig, NewVaultEntry, SlotId, UpdateVaultEntry, VaultError, VaultMetaV1, create_vault,
-    unlock_vault,
+    rewrap_vault_key, unlock_vault,
 };
 
 const PASSWORD: &[u8] = b"correct horse battery staple";
@@ -101,6 +101,76 @@ fn wrong_password_is_rejected() {
         .unwrap_err(),
         VaultError::WrongPasswordOrCorruptedVault
     );
+}
+
+#[test]
+fn master_password_change_rewraps_the_same_vault_key() {
+    const NEW_PASSWORD: &[u8] = b"a different long master phrase";
+    let mut source = rng(12);
+    let mut created = create_vault(PASSWORD, test_config(), 42, &mut source).unwrap();
+    created
+        .unlocked
+        .add_entry(
+            NewVaultEntry {
+                title: "Mail".to_owned(),
+                secret: "unchanged-secret".to_owned(),
+                description: None,
+            },
+            43,
+            &mut source,
+        )
+        .unwrap();
+    let slot = created
+        .unlocked
+        .encrypt_for_slot(SlotId::B, &mut source)
+        .unwrap();
+
+    let changed = rewrap_vault_key(
+        PASSWORD,
+        NEW_PASSWORD,
+        &created.metadata,
+        &created.unlocked,
+        test_config(),
+        &mut source,
+    )
+    .unwrap();
+
+    assert_eq!(changed.vault_id, created.metadata.vault_id);
+    assert_eq!(changed.created_at, created.metadata.created_at);
+    assert_ne!(changed.kdf.salt, created.metadata.kdf.salt);
+    assert!(unlock_vault(PASSWORD, &changed, &slot).is_err());
+    let reopened = unlock_vault(NEW_PASSWORD, &changed, &slot).unwrap();
+    assert_eq!(reopened.entries()[0].secret, "unchanged-secret");
+}
+
+#[test]
+fn master_password_change_rejects_wrong_current_and_short_new_passwords() {
+    let mut source = rng(13);
+    let created = create_vault(PASSWORD, test_config(), 42, &mut source).unwrap();
+
+    assert_eq!(
+        rewrap_vault_key(
+            b"wrong but sufficiently long password",
+            b"a different long master phrase",
+            &created.metadata,
+            &created.unlocked,
+            test_config(),
+            &mut source,
+        )
+        .unwrap_err(),
+        VaultError::WrongPasswordOrCorruptedVault
+    );
+    assert!(matches!(
+        rewrap_vault_key(
+            PASSWORD,
+            b"too short",
+            &created.metadata,
+            &created.unlocked,
+            test_config(),
+            &mut source,
+        ),
+        Err(VaultError::InvalidMasterPassword(_))
+    ));
 }
 
 #[test]

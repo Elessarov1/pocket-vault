@@ -167,6 +167,36 @@ impl WasmVaultSession {
         self.inner.cancel_pending_save();
     }
 
+    #[wasm_bindgen(js_name = preparePasswordChange)]
+    pub fn prepare_password_change(
+        &mut self,
+        current_master_password: String,
+        new_master_password: String,
+    ) -> Result<String, JsValue> {
+        let current_master_password = Zeroizing::new(current_master_password);
+        let new_master_password = Zeroizing::new(new_master_password);
+        let mut rng = BrowserCryptoRng;
+        self.inner
+            .prepare_password_change(
+                current_master_password.as_bytes(),
+                new_master_password.as_bytes(),
+                &mut rng,
+            )
+            .map_err(to_js_error)
+    }
+
+    #[wasm_bindgen(js_name = commitPasswordChange)]
+    pub fn commit_password_change(&mut self, readback_json: &str) -> Result<(), JsValue> {
+        self.inner
+            .commit_password_change(readback_json)
+            .map_err(to_js_error)
+    }
+
+    #[wasm_bindgen(js_name = cancelPasswordChange)]
+    pub fn cancel_password_change(&mut self) {
+        self.inner.cancel_password_change();
+    }
+
     pub fn lock(&mut self) {
         self.inner.lock();
     }

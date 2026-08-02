@@ -24,6 +24,7 @@ class MemoryCallbackStorage {
 export class PreviewWebApp {
   constructor() {
     this.DeviceStorage = new MemoryCallbackStorage();
+    this.SecureStorage = new MemoryCallbackStorage();
     this.events = new Map();
     this.colorScheme = "light";
   }

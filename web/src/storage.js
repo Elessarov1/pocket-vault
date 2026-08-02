@@ -68,7 +68,57 @@ export class TelegramDeviceStorage {
   }
 }
 
+export class TelegramSecureStorage {
+  constructor(storage, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+    this.storage = storage;
+    this.timeoutMs = timeoutMs;
+  }
+
+  async get(key) {
+    validateKey(key);
+    const [value] = await invoke(
+      this.storage,
+      "getItem",
+      [key],
+      this.timeoutMs,
+      "secure.getItem",
+    );
+    if (value !== null && typeof value !== "string") {
+      throw new TelegramStorageError("invalid_response", "secure.getItem");
+    }
+    return value;
+  }
+
+  async setVerified(key, value) {
+    validateKey(key);
+    validateValue(value);
+    await mutateAndVerify({
+      storage: this.storage,
+      method: "setItem",
+      args: [key, value],
+      operation: "secure.setItem",
+      timeoutMs: this.timeoutMs,
+      unconfirmedCode: "write_not_confirmed",
+      verify: async () => (await this.get(key)) === value,
+    });
+  }
+
+  async removeVerified(key) {
+    validateKey(key);
+    await mutateAndVerify({
+      storage: this.storage,
+      method: "removeItem",
+      args: [key],
+      operation: "secure.removeItem",
+      timeoutMs: this.timeoutMs,
+      unconfirmedCode: "remove_not_confirmed",
+      verify: async () => (await this.get(key)) === null,
+    });
+  }
+}
+
 function invoke(storage, method, args, timeoutMs, operation = method) {
+  assertStorageMethod(storage, method, operation);
   return new Promise((resolve, reject) => {
     let settled = false;
     const timer = setTimeout(() => {
@@ -107,6 +157,7 @@ async function mutateAndVerify({
   unconfirmedCode,
   verify,
 }) {
+  assertStorageMethod(storage, method, operation);
   let callbackFailure = null;
   try {
     storage[method](...args, (error, confirmed) => {
@@ -122,16 +173,21 @@ async function mutateAndVerify({
 
   const deadline = Date.now() + timeoutMs;
   while (true) {
-    if (callbackFailure) throw callbackFailure;
     const verified = await verify();
-    if (callbackFailure) throw callbackFailure;
     if (verified) return;
+    if (callbackFailure) throw callbackFailure;
 
     const remaining = deadline - Date.now();
     if (remaining <= 0) {
       throw new TelegramStorageError("timeout", operation);
     }
     await delay(Math.min(VERIFY_INTERVAL_MS, remaining));
+  }
+}
+
+function assertStorageMethod(storage, method, operation) {
+  if (!storage || typeof storage[method] !== "function") {
+    throw new TelegramStorageError("unsupported_storage", operation);
   }
 }
 

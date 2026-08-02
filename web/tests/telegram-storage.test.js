@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { TelegramDeviceStorage } from "../src/storage.js";
+import { TelegramDeviceStorage, TelegramSecureStorage } from "../src/storage.js";
 import { resolveTelegramWebApp, UnsupportedTelegramError } from "../src/telegram.js";
 import { MockWebApp } from "./helpers/mock-telegram.js";
 
@@ -43,4 +43,19 @@ test("mutations use verified readback when optional callbacks never arrive", asy
   webApp.DeviceStorage.skipNextCallback("removeItem");
   await device.removeVerified("vault_meta_v1");
   assert.equal(await device.get("vault_meta_v1"), null);
+});
+
+test("secure adapter stores a remembered master password with verified readback", async () => {
+  const webApp = new MockWebApp();
+  const secure = new TelegramSecureStorage(webApp.SecureStorage);
+
+  await secure.setVerified("master_password_cache_v1", "a long master phrase");
+  assert.equal(await secure.get("master_password_cache_v1"), "a long master phrase");
+  await secure.removeVerified("master_password_cache_v1");
+  assert.equal(await secure.get("master_password_cache_v1"), null);
+});
+
+test("missing SecureStorage is reported without making DeviceStorage unsupported", async () => {
+  const secure = new TelegramSecureStorage(undefined);
+  await assert.rejects(secure.get("master_password_cache_v1"), { code: "unsupported_storage" });
 });

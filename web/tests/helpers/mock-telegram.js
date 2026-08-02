@@ -63,11 +63,38 @@ export class MockDeviceStorage extends MockCallbackStorage {
   }
 }
 
+export class MockSecureStorage extends MockCallbackStorage {
+  constructor(calls = []) {
+    super("secure", calls);
+  }
+
+  getItem(key, callback) {
+    this.calls.push(`secure.get:${key}`);
+    this.callback("getItem", callback, [this.values.get(key) ?? null, false]);
+    return this;
+  }
+
+  setItem(key, value, callback) {
+    this.calls.push(`secure.set:${key}`);
+    if (!this.failures.has("setItem")) this.values.set(key, value);
+    this.callback("setItem", callback, [true]);
+    return this;
+  }
+
+  removeItem(key, callback) {
+    this.calls.push(`secure.remove:${key}`);
+    if (!this.failures.has("removeItem")) this.values.delete(key);
+    this.callback("removeItem", callback, [true]);
+    return this;
+  }
+}
+
 export class MockWebApp {
   constructor({ versionSupported = true } = {}) {
     this.calls = [];
     this.versionSupported = versionSupported;
     this.DeviceStorage = new MockDeviceStorage(this.calls);
+    this.SecureStorage = new MockSecureStorage(this.calls);
     this.handlers = new Map();
   }
 

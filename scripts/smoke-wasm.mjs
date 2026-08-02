@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 
 import { VaultAppController } from "../web/src/app-controller.js";
 import { PreviewWebApp } from "../web/src/preview-runtime.js";
-import { TelegramDeviceStorage } from "../web/src/storage.js";
+import { TelegramDeviceStorage, TelegramSecureStorage } from "../web/src/storage.js";
 import { VaultPersistence } from "../web/src/vault-persistence.js";
 import { initSync, VaultSession } from "../web/pkg/vault_wasm.js";
 
@@ -13,6 +13,7 @@ initSync({ module: bytes });
 const webApp = new PreviewWebApp();
 const persistence = new VaultPersistence({
   deviceStorage: new TelegramDeviceStorage(webApp.DeviceStorage),
+  secureStorage: new TelegramSecureStorage(webApp.SecureStorage),
   wasm: { VaultSession },
 });
 let timestamp = 1_800_000_000_000;
@@ -39,7 +40,20 @@ assert.equal(editable.secret, "M0cha-Pine-47!");
 await controller.saveEntry({ title: "Почта", secret: "новый-секрет", description: "Обновлено" });
 
 controller.lock();
+await controller.resume();
+assert.equal(controller.snapshot().screen, "vault");
+await controller.manualLock();
+await controller.resume();
+assert.equal(controller.snapshot().screen, "locked");
 await controller.unlock("следуй-за-белым-кроликом-домой");
+await controller.changeMasterPassword(
+  "следуй-за-белым-кроликом-домой",
+  "новая-фраза-следует-за-белым-кроликом",
+);
+controller.lock();
+await controller.resume();
+assert.equal(controller.snapshot().screen, "vault");
+await assert.rejects(persistence.openSession("следуй-за-белым-кроликом-домой"));
 controller.openEntry(id);
 assert.equal(controller.getSelectedSecret(), "новый-секрет");
 await controller.deleteSelected();
@@ -47,4 +61,4 @@ assert.equal(controller.snapshot().entries.length, 0);
 await controller.destroy();
 assert.equal((await persistence.inspectState()).state, "uninitialized");
 
-console.log("WASM smoke test passed: create, save, update, lock, reopen, delete, destroy");
+console.log("WASM smoke test passed: CRUD, quick unlock, manual lock, password change, destroy");

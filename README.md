@@ -1,9 +1,10 @@
 # Pocket Vault
 
 Pocket Vault is a local encrypted vault for passwords, PINs, and other short
-secrets inside a Telegram Mini App. Telegram only receives ciphertext: the
-decryption key is derived on the device from the master passphrase, which is
-never persisted or sent anywhere.
+secrets inside a Telegram Mini App. Vault records are encrypted on the device,
+and DeviceStorage receives only ciphertext. On supported mobile clients, the
+master passphrase can be remembered in Telegram SecureStorage for quick unlock;
+it is never sent to the project developer or stored in browser localStorage.
 
 The source code is available for study, modification, and noncommercial use
 under the PolyForm Noncommercial License 1.0.0. Commercial use requires a
@@ -24,7 +25,7 @@ The repository contains four layers:
 ## Core
 
 The core implements the versioned V1 format, vault creation and unlocking,
-entry CRUD, Argon2id + HKDF-SHA-256, random DEK wrapping,
+master-passphrase rotation, entry CRUD, Argon2id + HKDF-SHA-256, random DEK wrapping,
 XChaCha20-Poly1305, and crash-tolerant two-slot persistence. Every entry field
 exists only inside the encrypted container. The format and exact AAD
 construction are documented in [`docs/FORMAT.md`](docs/FORMAT.md).
@@ -78,7 +79,9 @@ Localhost enables a safe preview runtime. It uses the same WASM module,
 controller, and persistence protocol, but its callback storage exists only in
 the current tab's memory and is cleared on reload. This fallback is disabled in
 Telegram: the production application requires Bot API 9.0 and uses only
-`DeviceStorage`. The production target includes current Telegram clients on
+`DeviceStorage`. SecureStorage is an optional quick-unlock capability: clients
+that do not provide it remain usable but require the master passphrase after a
+full restart. The production target includes current Telegram clients on
 iOS, Android, Windows, macOS, and Linux. Each device has an independent local
 vault; Pocket Vault does not currently synchronize data between devices.
 
@@ -86,6 +89,12 @@ Because no platform-specific secret is required, the master passphrase is the
 only user secret. Anyone who obtains a copy of the encrypted DeviceStorage
 values can attempt offline password guesses; a long, unique passphrase and the
 serialized Argon2id cost are the defenses against that attack.
+
+Manual locking writes a separate DeviceStorage marker before dropping the
+decrypted WASM session. This suppresses quick unlock until the user explicitly
+enters the master passphrase again. Changing the passphrase verifies the current
+one and rewraps the existing random DEK with a fresh salt, so entry slots do not
+need to be decrypted and rewritten.
 
 ## Deployment
 

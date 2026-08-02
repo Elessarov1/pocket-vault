@@ -158,6 +158,53 @@ pub fn unlock_vault(
     })
 }
 
+/// Verifies the current master password and wraps the existing data key with a
+/// newly derived key. Encrypted vault slots remain unchanged.
+///
+/// # Errors
+///
+/// Returns an error when either password is invalid, metadata does not belong
+/// to the unlocked vault, randomness is unavailable, or key wrapping fails.
+pub fn rewrap_vault_key(
+    current_master_password: &[u8],
+    new_master_password: &[u8],
+    metadata: &VaultMetaV1,
+    vault: &UnlockedVault,
+    config: KdfConfig,
+    rng: &mut impl TryCryptoRng,
+) -> Result<VaultMetaV1, VaultError> {
+    metadata.validate()?;
+    if metadata.vault_id != vault.container.vault_id
+        || metadata.created_at != vault.container.created_at
+    {
+        return Err(VaultError::InvalidMetadata(
+            "metadata does not match the unlocked vault",
+        ));
+    }
+
+    let current_kek = derive_kek(current_master_password, metadata.vault_id, &metadata.kdf)?;
+    let verified_dek = unwrap_dek(&current_kek, &metadata.wrapped_dek, metadata.vault_id)?;
+    if verified_dek.as_ref() != vault.dek.as_ref() {
+        return Err(VaultError::WrongPasswordOrCorruptedVault);
+    }
+
+    validate_new_master_password(new_master_password)?;
+    let salt = random_array::<SALT_BYTES>(rng)?;
+    let kdf = KdfParams::from_config(salt, config);
+    kdf.validate()?;
+    let new_kek = derive_kek(new_master_password, metadata.vault_id, &kdf)?;
+    let wrapped_dek = wrap_dek(&new_kek, &vault.dek, metadata.vault_id, rng)?;
+
+    Ok(VaultMetaV1 {
+        format: metadata.format.clone(),
+        version: metadata.version,
+        vault_id: metadata.vault_id,
+        created_at: metadata.created_at,
+        kdf,
+        wrapped_dek,
+    })
+}
+
 impl UnlockedVault {
     #[must_use]
     pub fn entries(&self) -> &[VaultEntry] {

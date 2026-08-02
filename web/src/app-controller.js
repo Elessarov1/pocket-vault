@@ -3,6 +3,8 @@ export class VaultAppController {
     this.persistence = persistence;
     this.now = now;
     this.session = null;
+    this.resumePromise = null;
+    this.lockRevision = 0;
     this.listeners = new Set();
     this.state = Object.freeze({ screen: "loading", entries: [], selectedId: null, editingId: null });
   }
@@ -18,31 +20,94 @@ export class VaultAppController {
 
   async initialize() {
     const status = await this.persistence.inspectState();
-    const screen = status.state === "uninitialized" ? "onboarding" : "locked";
-    this.setState({ screen, entries: [], selectedId: null, editingId: null });
+    if (status.state === "locked") {
+      this.session = await this.persistence.openCachedSession();
+    }
+    const screen = status.state === "uninitialized"
+      ? "onboarding"
+      : this.session
+        ? "vault"
+        : "locked";
+    if (this.session) {
+      this.refreshEntries();
+      this.setState({ screen, selectedId: null, editingId: null });
+    } else {
+      this.setState({ screen, entries: [], selectedId: null, editingId: null });
+    }
     return this.snapshot();
   }
 
   async create(masterPassword) {
     this.session = await this.persistence.createSession(masterPassword, this.now());
+    await this.enableAutoUnlock(masterPassword);
     this.refreshEntries();
     this.setState({ screen: "vault", selectedId: null, editingId: null });
   }
 
   async unlock(masterPassword) {
     this.session = await this.persistence.openSession(masterPassword);
+    await this.enableAutoUnlock(masterPassword);
     this.refreshEntries();
     this.setState({ screen: "vault", selectedId: null, editingId: null });
   }
 
   lock() {
+    this.lockRevision += 1;
     this.session?.lock();
     this.session = null;
     this.setState({ screen: "locked", entries: [], selectedId: null, editingId: null });
   }
 
+  async manualLock() {
+    try {
+      await this.persistence.markManualLock();
+    } finally {
+      this.lock();
+    }
+  }
+
+  async resume() {
+    if (this.session) return this.snapshot();
+    if (this.resumePromise) return this.resumePromise;
+    const revision = this.lockRevision;
+    this.resumePromise = (async () => {
+      const session = await this.persistence.openCachedSession();
+      if (revision !== this.lockRevision) {
+        session?.lock();
+        return this.snapshot();
+      }
+      this.session = session;
+      if (!this.session) return this.snapshot();
+      this.refreshEntries();
+      this.setState({ screen: "vault", selectedId: null, editingId: null });
+      return this.snapshot();
+    })();
+    try {
+      return await this.resumePromise;
+    } finally {
+      this.resumePromise = null;
+    }
+  }
+
+  async changeMasterPassword(currentMasterPassword, newMasterPassword) {
+    const session = this.requireSession();
+    try {
+      await this.persistence.changeMasterPassword(
+        session,
+        currentMasterPassword,
+        newMasterPassword,
+      );
+      await this.enableAutoUnlock(newMasterPassword);
+      this.setState({ screen: "settings" });
+    } catch (error) {
+      const code = typeof error === "string" ? error : error?.code ?? error?.message;
+      if (!["cannot_open_vault", "invalid_master_password"].includes(code)) this.lock();
+      throw error;
+    }
+  }
+
   navigate(screen) {
-    if (["vault", "settings", "destroy"].includes(screen)) this.requireSession();
+    if (["vault", "settings", "change-password", "destroy"].includes(screen)) this.requireSession();
     this.setState({ screen });
   }
 
@@ -114,6 +179,15 @@ export class VaultAppController {
     await this.persistence.destroySession(session);
     this.session = null;
     this.setState({ screen: "onboarding", entries: [], selectedId: null, editingId: null });
+  }
+
+  async enableAutoUnlock(masterPassword) {
+    try {
+      await this.persistence.clearManualLock();
+    } catch {
+      // The current session stays usable; the next launch will ask again.
+    }
+    await this.persistence.rememberMasterPassword(masterPassword);
   }
 
   refreshEntries() {

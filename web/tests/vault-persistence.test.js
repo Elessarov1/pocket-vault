@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { TelegramDeviceStorage } from "../src/storage.js";
+import { TelegramDeviceStorage, TelegramSecureStorage } from "../src/storage.js";
 import {
   ACTIVE_SLOT_KEY,
+  MANUAL_LOCK_KEY,
+  MASTER_PASSWORD_CACHE_KEY,
   META_KEY,
   SLOT_A_KEY,
   SLOT_B_KEY,
@@ -41,6 +43,7 @@ function createHarness() {
   };
   const persistence = new VaultPersistence({
     deviceStorage: new TelegramDeviceStorage(webApp.DeviceStorage),
+    secureStorage: new TelegramSecureStorage(webApp.SecureStorage),
     wasm,
   });
   return { webApp, wasm, persistence, sessions };
@@ -73,6 +76,18 @@ function createSession() {
     },
     cancelPendingSave() {
       this.cancelled = true;
+    },
+    preparePasswordChange(current, next) {
+      assert.equal(current, "current master password");
+      assert.equal(next, "new long master password");
+      return "changed-metadata";
+    },
+    commitPasswordChange(value) {
+      assert.equal(value, "changed-metadata");
+      this.passwordChanged = true;
+    },
+    cancelPasswordChange() {
+      this.passwordChangeCancelled = true;
     },
   };
 }
@@ -133,16 +148,46 @@ test("partial pointer write cancels pending session state", async () => {
 test("destroy needs no password and clears every vault key", async () => {
   const { persistence, webApp } = createHarness();
   const session = createSession();
-  for (const key of [META_KEY, SLOT_A_KEY, SLOT_B_KEY, ACTIVE_SLOT_KEY]) {
+  for (const key of [META_KEY, SLOT_A_KEY, SLOT_B_KEY, ACTIVE_SLOT_KEY, MANUAL_LOCK_KEY]) {
     webApp.DeviceStorage.values.set(key, "encrypted");
   }
+  webApp.SecureStorage.values.set(MASTER_PASSWORD_CACHE_KEY, "master password");
 
   await persistence.destroySession(session);
 
   assert.equal(session.locked, true);
-  for (const key of [META_KEY, SLOT_A_KEY, SLOT_B_KEY, ACTIVE_SLOT_KEY]) {
+  for (const key of [META_KEY, SLOT_A_KEY, SLOT_B_KEY, ACTIVE_SLOT_KEY, MANUAL_LOCK_KEY]) {
     assert.equal(webApp.DeviceStorage.values.has(key), false);
   }
+  assert.equal(webApp.SecureStorage.values.has(MASTER_PASSWORD_CACHE_KEY), false);
+});
+
+test("cached password opens automatically unless the user locked manually", async () => {
+  const { persistence, webApp } = createHarness();
+  webApp.DeviceStorage.values.set(META_KEY, "metadata");
+  webApp.DeviceStorage.values.set(SLOT_A_KEY, "slot-a-0");
+  await persistence.rememberMasterPassword("a long master phrase");
+
+  assert.notEqual(await persistence.openCachedSession(), null);
+  await persistence.markManualLock();
+  assert.equal(await persistence.openCachedSession(), null);
+  await persistence.clearManualLock();
+  assert.notEqual(await persistence.openCachedSession(), null);
+});
+
+test("password change persists and verifies metadata before committing", async () => {
+  const { persistence, webApp } = createHarness();
+  const session = createSession();
+
+  await persistence.changeMasterPassword(
+    session,
+    "current master password",
+    "new long master password",
+  );
+
+  assert.equal(webApp.DeviceStorage.values.get(META_KEY), "changed-metadata");
+  assert.equal(session.passwordChanged, true);
+  assert.notEqual(session.passwordChangeCancelled, true);
 });
 
 test("deactivated hides secrets before locking the session", () => {

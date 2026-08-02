@@ -40,8 +40,9 @@
           <button type="button" data-screen="detail"><span>04</span> Запись</button>
           <button type="button" data-screen="edit"><span>05</span> Редактор</button>
           <button type="button" data-screen="settings"><span>06</span> Настройки</button>
-          <button type="button" data-screen="destroy"><span>07</span> Уничтожение</button>
-          <button type="button" data-screen="unsupported"><span>08</span> Несовместимость</button>
+          <button type="button" data-screen="change-password"><span>07</span> Смена пароля</button>
+          <button type="button" data-screen="destroy"><span>08</span> Уничтожение</button>
+          <button type="button" data-screen="unsupported"><span>09</span> Несовместимость</button>
         </nav>
 
         <div class="theme-control" aria-label="Тема прототипа">
@@ -66,6 +67,7 @@
             <option value="detail">Запись</option>
             <option value="edit">Редактор</option>
             <option value="settings">Настройки</option>
+            <option value="change-password">Смена пароля</option>
             <option value="destroy">Уничтожение</option>
             <option value="unsupported">Несовместимость</option>
           </select>
@@ -162,8 +164,8 @@
               <svg viewBox="0 0 24 24"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m9.2 11.8 1.8 1.8 3.8-4"/></svg>
             </span>
             <h3 id="security-sheet-title">Как защищены записи</h3>
-            <p>Записи шифруются на устройстве до сохранения. Telegram получает только шифротекст.</p>
-            <p>Мастер-пароль не сохраняется и никуда не отправляется.</p>
+            <p>Записи шифруются на устройстве до сохранения. В DeviceStorage хранится только шифротекст.</p>
+            <p>Для быстрого входа мастер-пароль может храниться в защищённом хранилище устройства. Он не отправляется разработчику.</p>
             <button class="button button--primary button--full" type="button" data-close-sheet>Понятно</button>
           </section>
         </div>
@@ -210,7 +212,7 @@
 
         <div class="local-footnote">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m9.2 11.8 1.8 1.8 3.8-4"/></svg>
-          <p><strong>Telegram получает только шифротекст</strong></p>
+          <p><strong>Записи хранятся как шифротекст</strong></p>
         </div>
 
         <div class="sheet-backdrop" id="forgot-sheet" hidden>
@@ -262,6 +264,9 @@
             <span>Pocket Vault</span>
           </div>
           <div class="header-actions">
+            <button class="icon-button" type="button" data-lock-now aria-label="Заблокировать сейчас">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            </button>
             <button class="theme-icon-button" type="button" data-theme-toggle aria-label="Переключить на тёмную тему">
               <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/></svg>
               <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42M7.06 16.94l-1.42 1.42"/><circle cx="12" cy="12" r="4"/></svg>
@@ -303,7 +308,9 @@
             <span>Хранилище</span>
           </button>
           <span class="header-title">Запись</span>
-          <span class="header-spacer"></span>
+          <button class="icon-button" type="button" data-lock-now aria-label="Заблокировать сейчас">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          </button>
         </header>
 
         <div class="record-hero">
@@ -370,7 +377,9 @@
             <span>Назад</span>
           </button>
           <span class="header-title" id="record-form-title">Новая запись</span>
-          <span class="header-spacer"></span>
+          <button class="icon-button" type="button" data-lock-now aria-label="Заблокировать сейчас">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          </button>
         </header>
 
         <div class="form-intro">
@@ -410,21 +419,23 @@
             <span>Хранилище</span>
           </button>
           <span class="header-title">Настройки</span>
-          <span class="header-spacer"></span>
+          <button class="icon-button" type="button" data-lock-now aria-label="Заблокировать сейчас">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          </button>
         </header>
 
         <div class="settings-group">
           <p class="group-label">Безопасность</p>
-          <button class="settings-row" type="button" data-go="locked">
+          <button class="settings-row" type="button" data-lock-now>
             <span class="settings-icon settings-icon--mint"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></span>
             <span><strong>Заблокировать сейчас</strong><small>Потребуется мастер-пароль</small></span>
             <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
           </button>
-          <div class="settings-row settings-row--static">
-            <span class="settings-icon settings-icon--blue"><svg viewBox="0 0 24 24"><path d="M12 21s7-3.5 7-10V5l-7-3-7 3v6c0 6.5 7 10 7 10Z"/><path d="m9.2 11.8 1.8 1.8 3.8-4"/></svg></span>
-            <span><strong>Локальное хранение</strong><small>Синхронизация отключена</small></span>
-            <span class="status-dot">Включено</span>
-          </div>
+          <button class="settings-row" type="button" data-go="change-password">
+            <span class="settings-icon settings-icon--blue"><svg viewBox="0 0 24 24"><path d="M4 15a8 8 0 1 1 2.3 3.7"/><path d="M4 20v-5h5"/><circle cx="12" cy="10" r="2"/><path d="M12 12v3"/></svg></span>
+            <span><strong>Сменить мастер-пароль</strong><small>Потребуется текущий пароль</small></span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
         </div>
 
         <div class="settings-group">
@@ -462,6 +473,50 @@
       </section>
     </template>
 
+    <template id="screen-change-password">
+      <section class="screen screen--form screen--change-password">
+        <header class="app-header app-header--plain">
+          <button class="back-button" type="button" data-go="settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
+            <span>Настройки</span>
+          </button>
+          <span class="header-title">Мастер-пароль</span>
+          <button class="icon-button" type="button" data-lock-now aria-label="Заблокировать сейчас">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          </button>
+        </header>
+
+        <div class="form-intro">
+          <p class="eyebrow">Безопасность</p>
+          <h2>Смените мастер-пароль</h2>
+          <p>Записи останутся без изменений.</p>
+        </div>
+
+        <form class="record-form" id="change-password-form">
+          <div class="field">
+            <label for="current-master-password">Текущий мастер-пароль</label>
+            <div class="input-with-action">
+              <input id="current-master-password" type="password" autocomplete="current-password" placeholder="Введите текущий пароль" required>
+              <button type="button" class="field-action" data-toggle-password="current-master-password">Показать</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="new-master-password">Новый мастер-пароль</label>
+            <div class="input-with-action">
+              <input id="new-master-password" type="password" autocomplete="new-password" placeholder="Фраза от 16 символов" required>
+              <button type="button" class="field-action" data-toggle-password="new-master-password">Показать</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="confirm-new-master-password">Повторите новый пароль</label>
+            <input id="confirm-new-master-password" type="password" autocomplete="new-password" placeholder="Введите ещё раз" required>
+          </div>
+          <p class="form-note">После смены для быстрого входа будет сохранён только новый мастер-пароль.</p>
+          <button class="button button--primary button--full" type="submit">Сменить мастер-пароль</button>
+        </form>
+      </section>
+    </template>
+
     <template id="screen-destroy">
       <section class="screen screen--destroy">
         <header class="app-header app-header--plain">
@@ -469,7 +524,10 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg>
             <span>Настройки</span>
           </button>
-          <span class="header-spacer"></span>
+          <span class="header-title">Удаление</span>
+          <button class="icon-button" type="button" data-lock-now aria-label="Заблокировать сейчас">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          </button>
         </header>
 
         <div class="danger-hero">

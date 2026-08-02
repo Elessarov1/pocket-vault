@@ -21,4 +21,4 @@ pub use storage::{
     ACTIVE_SLOT_KEY, DeviceStorage, META_KEY, MemoryStorage, OpenedVault, SLOT_A_KEY, SLOT_B_KEY,
     TwoSlotRepository,
 };
-pub use vault::{CreatedVault, UnlockedVault, create_vault, unlock_vault};
+pub use vault::{CreatedVault, UnlockedVault, create_vault, rewrap_vault_key, unlock_vault};

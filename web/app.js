@@ -23,6 +23,7 @@ const validScreens = new Set([
   "detail",
   "edit",
   "settings",
+  "change-password",
   "destroy",
   "unsupported",
 ]);
@@ -216,11 +217,13 @@ function bindScreenInteractions() {
     button.addEventListener("click", () => {
       const destination = button.dataset.go;
       runAction(() => {
-        if (destination === "locked") controller.lock();
-        else if (destination === "edit") controller.beginEdit(currentScreen === "detail" ? controller.snapshot().selectedId : null);
+        if (destination === "edit") controller.beginEdit(currentScreen === "detail" ? controller.snapshot().selectedId : null);
         else controller.navigate(destination);
       });
     });
+  });
+  document.querySelectorAll("[data-lock-now]").forEach((button) => {
+    button.addEventListener("click", () => runAction(() => controller.manualLock()));
   });
 
   document.querySelectorAll("[data-toggle-password]").forEach((button) => {
@@ -242,6 +245,7 @@ function bindScreenInteractions() {
   creationPassword?.addEventListener("input", () => updateStrength(creationPassword));
   document.querySelector("#creation-form")?.addEventListener("submit", handleCreate);
   document.querySelector("#unlock-form")?.addEventListener("submit", handleUnlock);
+  document.querySelector("#change-password-form")?.addEventListener("submit", handleChangePassword);
 
   document.querySelectorAll(".field input[maxlength], .field textarea[maxlength]").forEach((field) => {
     field.addEventListener("input", updateCounters);
@@ -287,6 +291,36 @@ async function handleUnlock(event) {
   if (!password) return showToast(t("Введите мастер-пароль"));
   input.value = "";
   await runBusy(form, t("Открываем…"), () => controller.unlock(password));
+}
+
+async function handleChangePassword(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const currentInput = form.querySelector("#current-master-password");
+  const nextInput = form.querySelector("#new-master-password");
+  const confirmationInput = form.querySelector("#confirm-new-master-password");
+  const currentPassword = currentInput.value;
+  const newPassword = nextInput.value;
+  const confirmation = confirmationInput.value;
+
+  if (!currentPassword) return showToast(t("Введите текущий мастер-пароль"));
+  if (Array.from(newPassword).length < 16) {
+    return showToast(t("Мастер-пароль должен быть не короче 16 символов"));
+  }
+  if (newPassword !== confirmation) return showToast(t("Мастер-пароли не совпадают"));
+  if (currentPassword === newPassword) {
+    return showToast(t("Новый мастер-пароль должен отличаться от текущего"));
+  }
+
+  currentInput.value = "";
+  nextInput.value = "";
+  confirmationInput.value = "";
+  const changed = await runBusy(
+    form,
+    t("Меняем пароль…"),
+    () => controller.changeMasterPassword(currentPassword, newPassword),
+  );
+  if (changed) showToast(t("Мастер-пароль изменён"));
 }
 
 async function handleSaveEntry(event) {
@@ -510,7 +544,7 @@ function switchTheme() {
 
 function requestReviewScreen(screen) {
   if (runtime?.mode !== "preview") return;
-  if (["vault", "settings", "destroy"].includes(screen)) {
+  if (["vault", "settings", "change-password", "destroy"].includes(screen)) {
     runAction(() => controller.navigate(screen));
   } else if (screen === "detail" && controller.snapshot().selectedId) {
     runAction(() => controller.openEntry(controller.snapshot().selectedId));
@@ -549,8 +583,11 @@ function bindLifecycle() {
   runtime.webApp.onEvent("deactivated", () => {
     if (!controller?.session) return;
     hideVisibleSecret();
-    renderScreen("locked");
     controller.lock();
+  });
+  runtime.webApp.onEvent("activated", () => {
+    if (!controller || controller.session) return;
+    runAction(() => controller.resume());
   });
 }
 
@@ -623,7 +660,6 @@ async function boot() {
   document.body.classList.add(`runtime-${runtime.mode}`);
   controller = new VaultAppController({ persistence: runtime.persistence });
   controller.subscribe((state) => renderScreen(state.screen));
-  bindLifecycle();
   bindKeyboardAvoidance();
 
   if (runtime.mode === "preview") {
@@ -635,6 +671,7 @@ async function boot() {
 
   try {
     await controller.initialize();
+    bindLifecycle();
   } catch (error) {
     if (error?.code !== "unsupported_storage") showError(error);
     renderScreen("unsupported");
