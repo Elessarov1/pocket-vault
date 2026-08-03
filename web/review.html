@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#f2f0e9">
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self'; frame-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    >
+    <title>Pocket Vault — Review</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="review.js" type="module"></script>
+  </head>
+  <body class="review-page">
+    <div class="prototype-layout">
+      <aside class="review-panel" aria-label="Навигация по прототипу">
+        <div class="review-brand">
+          <span class="brand-mark brand-mark--small" aria-hidden="true">
+            <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
+          </span>
+          <div>
+            <strong>Pocket Vault</strong>
+            <span>Черновик интерфейса · 01</span>
+          </div>
+        </div>
+
+        <div class="review-intro">
+          <p class="eyebrow">Направление</p>
+          <h1>Спокойный, честный, локальный.</h1>
+          <p>Пароли — основной сценарий. Коды и заметки остаются рядом, но не перетягивают на себя смысл продукта.</p>
+        </div>
+
+        <nav class="screen-list" id="screen-list">
+          <p class="review-label">Экраны</p>
+          <button class="is-active" type="button" data-screen="onboarding"><span>01</span> Создание</button>
+          <button type="button" data-screen="locked"><span>02</span> Вход</button>
+          <button type="button" data-screen="vault"><span>03</span> Хранилище</button>
+          <button type="button" data-screen="detail"><span>04</span> Запись</button>
+          <button type="button" data-screen="edit"><span>05</span> Редактор</button>
+          <button type="button" data-screen="settings"><span>06</span> Настройки</button>
+          <button type="button" data-screen="change-password"><span>07</span> Смена пароля</button>
+          <button type="button" data-screen="destroy"><span>08</span> Уничтожение</button>
+          <button type="button" data-screen="unsupported"><span>09</span> Несовместимость</button>
+        </nav>
+
+        <div class="theme-control" aria-label="Тема прототипа">
+          <p class="review-label">Тема</p>
+          <div class="segmented">
+            <button class="is-active" type="button" data-theme-choice="light">Светлая</button>
+            <button type="button" data-theme-choice="dark">Тёмная</button>
+          </div>
+        </div>
+        <button class="language-button language-button--panel" type="button" data-language-toggle>EN</button>
+
+        <p class="review-note">Preview-режим хранит зашифрованные данные только в памяти вкладки — до перезагрузки.</p>
+      </aside>
+
+      <main class="preview-stage">
+        <div class="mobile-review-bar">
+          <label for="screen-picker">Экран</label>
+          <select id="screen-picker">
+            <option value="onboarding">Создание</option>
+            <option value="locked">Вход</option>
+            <option value="vault">Хранилище</option>
+            <option value="detail">Запись</option>
+            <option value="edit">Редактор</option>
+            <option value="settings">Настройки</option>
+            <option value="change-password">Смена пароля</option>
+            <option value="destroy">Уничтожение</option>
+            <option value="unsupported">Несовместимость</option>
+          </select>
+          <button type="button" class="theme-icon-button" data-theme-toggle aria-label="Переключить на тёмную тему">
+            <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/></svg>
+            <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42M7.06 16.94l-1.42 1.42"/><circle cx="12" cy="12" r="4"/></svg>
+          </button>
+        </div>
+
+        <section class="device-shell" aria-label="Предпросмотр мобильного приложения">
+          <div class="device-status" aria-hidden="true">
+            <span>9:41</span>
+            <div>
+              <svg viewBox="0 0 18 12"><path d="M1 10h2V8H1v2Zm4 0h2V6H5v4Zm4 0h2V3H9v7Zm4 0h2V1h-2v9Z"/></svg>
+              <svg viewBox="0 0 18 12"><path d="M1 4.5C5.2.7 12.8.7 17 4.5M4 7.2c2.8-2.5 7.2-2.5 10 0M7.2 9.7c1-1 2.6-1 3.6 0"/></svg>
+              <span class="battery"></span>
+            </div>
+          </div>
+          <iframe
+            class="review-frame"
+            id="review-frame"
+            src="index.html?preview=1"
+            title="Предпросмотр Pocket Vault"
+            allow="clipboard-read; clipboard-write"
+          ></iframe>
+          <div class="home-indicator" aria-hidden="true"></div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

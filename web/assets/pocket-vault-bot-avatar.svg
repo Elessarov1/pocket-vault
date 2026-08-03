@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Pocket Vault bot avatar</title>
+  <desc id="description">The Pocket Vault safe mark in dark green and lime.</desc>
+  <rect width="1024" height="1024" fill="#1f2421"/>
+  <g transform="rotate(-3 512 512)">
+    <rect x="202" y="202" width="620" height="620" rx="200" fill="#caef77"/>
+    <g transform="translate(192 192) scale(20)" fill="none" stroke="#1b2414" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/>
+      <path d="M8 12.5h16M16 12.5v4.2"/>
+      <circle cx="16" cy="18.7" r="2.2"/>
+    </g>
+  </g>
+</svg>

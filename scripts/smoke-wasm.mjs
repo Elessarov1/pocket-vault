@@ -4,10 +4,7 @@ import { readFile } from "node:fs/promises";
 import { VaultAppController } from "../web/src/app-controller.js";
 import { PreviewWebApp } from "../web/src/preview-runtime.js";
 import { TelegramDeviceStorage, TelegramSecureStorage } from "../web/src/storage.js";
-import {
-  VaultPersistence,
-  nextLocalDayStart,
-} from "../web/src/vault-persistence.js";
+import { VaultPersistence } from "../web/src/vault-persistence.js";
 import { initSync, VaultSession } from "../web/pkg/vault_wasm.js";
 
 const bytes = await readFile(new URL("../web/pkg/vault_wasm_bg.wasm", import.meta.url));
@@ -42,8 +39,9 @@ const editable = controller.beginEdit(id);
 assert.equal(editable.secret, "M0cha-Pine-47!");
 await controller.saveEntry({ title: "Почта", secret: "новый-секрет", description: "Обновлено" });
 
-controller.lock();
-await controller.resume();
+controller.deactivate(timestamp);
+timestamp += 4 * 60_000;
+await controller.resume(timestamp);
 assert.equal(controller.snapshot().screen, "vault");
 await controller.manualLock();
 await controller.resume();
@@ -53,12 +51,9 @@ await controller.changeMasterPassword(
   "следуй-за-белым-кроликом-домой",
   "новая-фраза-следует-за-белым-кроликом",
 );
-controller.lock();
-await controller.resume();
-assert.equal(controller.snapshot().screen, "vault");
-controller.lock();
-timestamp = nextLocalDayStart(timestamp);
-await controller.resume();
+controller.deactivate(timestamp);
+timestamp += 5 * 60_000;
+await controller.resume(timestamp);
 assert.equal(controller.snapshot().screen, "locked");
 await controller.unlock("новая-фраза-следует-за-белым-кроликом");
 await assert.rejects(persistence.openSession("следуй-за-белым-кроликом-домой"));
@@ -69,4 +64,4 @@ assert.equal(controller.snapshot().entries.length, 0);
 await controller.destroy();
 assert.equal((await persistence.inspectState()).state, "uninitialized");
 
-console.log("WASM smoke test passed: CRUD, midnight expiry, manual lock, password change, destroy");
+console.log("WASM smoke test passed: CRUD, session expiry, manual lock, password change, destroy");

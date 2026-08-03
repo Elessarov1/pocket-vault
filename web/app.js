@@ -4,11 +4,18 @@ import {
   getLanguage,
   getLocale,
   initializeLanguage,
+  setLanguage,
   t,
   toggleLanguage,
   translateRoot,
 } from "./src/i18n.js";
 import { isPreviewLocation } from "./src/preview-runtime.js";
+import {
+  MAX_SESSION_TIMEOUT_MINUTES,
+  MIN_SESSION_TIMEOUT_MINUTES,
+  loadSessionTimeoutMinutes,
+  saveSessionTimeoutMinutes,
+} from "./src/session-preferences.js";
 import {
   initializeTheme,
   setTheme,
@@ -28,6 +35,7 @@ const validScreens = new Set([
   "unsupported",
 ]);
 const ENTRY_COLORS = ["mint", "peach", "blue", "lilac"];
+const REVIEW_MESSAGE_TYPE = "pocket-vault-review";
 const STRENGTH_LABELS = [
   "Лучше всего — 6–7 случайных слов",
   "Слишком короткий мастер-пароль",
@@ -58,6 +66,7 @@ let currentScreen = "loading";
 let toastTimer;
 let revealTimer;
 let authenticationTimer;
+let appInactive = false;
 
 function listen(selector, eventName, listener, root = document) {
   root.querySelector(selector)?.addEventListener(eventName, listener);
@@ -89,7 +98,7 @@ function renderLoading() {
   appScreen.replaceChildren(section);
 }
 
-function renderScreen(name) {
+function renderScreen(name, { populate = true } = {}) {
   if (!validScreens.has(name)) return;
   const template = document.querySelector(`#screen-${name}`);
   if (!template) return;
@@ -100,13 +109,15 @@ function renderScreen(name) {
   translateRoot(appScreen);
   updateThemeControls(appScreen);
   appScreen.scrollTop = 0;
-  screenPicker.value = name;
+  if (screenPicker) screenPicker.value = name;
   updateReviewNavigation(name);
 
-  if (name === "vault" && controller) populateEntryList(controller.snapshot().entries);
-  if (name === "detail" && controller) populateEntryDetails();
-  if (name === "edit" && controller) populateEntryForm();
+  if (populate && name === "vault" && controller) populateEntryList(controller.snapshot().entries);
+  if (populate && name === "detail" && controller) populateEntryDetails();
+  if (populate && name === "edit" && controller) populateEntryForm();
+  if (name === "settings" && controller) updateSessionTimeoutControls();
   bindScreenInteractions();
+  postToReviewHost("screen", name);
 }
 
 function updateReviewNavigation(name) {
@@ -254,6 +265,9 @@ function bindScreenInteractions() {
   listenAll("[data-lock-now]", "click", () => runAction(() => controller.manualLock()));
   listenAll("[data-toggle-password]", "click", (event) => togglePassword(event.currentTarget));
   listenAll("[data-open-sheet]", "click", (event) => openSheet(event.currentTarget.dataset.openSheet));
+  listenAll("[data-session-timeout-option]", "click", (event) => {
+    applySessionTimeout(event.currentTarget.dataset.sessionTimeoutOption);
+  });
   listenAll("[data-close-sheet]", "click", (event) => {
     closeSheet(event.currentTarget.closest(".sheet-backdrop"));
   });
@@ -266,6 +280,7 @@ function bindScreenInteractions() {
   listen("#creation-form", "submit", handleCreate);
   listen("#unlock-form", "submit", handleUnlock);
   listen("#change-password-form", "submit", handleChangePassword);
+  listen("#custom-session-timeout-form", "submit", handleCustomSessionTimeout);
   listenAll(".field input[maxlength], .field textarea[maxlength]", "input", updateCounters);
   listen("#record-form", "submit", handleSaveEntry);
   listen("[data-reveal]", "click", toggleSecret);
@@ -527,20 +542,88 @@ function closeSheet(sheet) {
 }
 
 function switchLanguage() {
-  toggleLanguage();
+  const language = toggleLanguage();
+  refreshLanguageDependentUi();
+  postToReviewHost("language", language);
+}
+
+function refreshLanguageDependentUi() {
   updateThemeControls(document);
+  updateSessionTimeoutControls();
   if (currentScreen === "loading") renderLoading();
   else if (runtime?.mode === "preview" && ["vault", "detail"].includes(currentScreen)) {
-    renderScreen(currentScreen);
+    renderScreen(currentScreen, { populate: Boolean(controller?.session) });
   }
 }
 
 function switchTheme() {
-  toggleTheme();
+  const theme = toggleTheme();
+  postToReviewHost("theme", theme);
+}
+
+function handleCustomSessionTimeout(event) {
+  event.preventDefault();
+  const input = event.currentTarget.querySelector("#custom-session-timeout");
+  applySessionTimeout(input?.value);
+}
+
+function applySessionTimeout(value) {
+  const minutes = Number(value);
+  if (
+    !Number.isInteger(minutes)
+    || minutes < MIN_SESSION_TIMEOUT_MINUTES
+    || minutes > MAX_SESSION_TIMEOUT_MINUTES
+  ) {
+    showToast(t("Введите целое число от 1 до 1440"));
+    return;
+  }
+
+  controller.setSessionTimeoutMinutes(minutes, Date.now());
+  saveSessionTimeoutMinutes(minutes);
+  updateSessionTimeoutControls();
+  scheduleAuthenticationExpiry();
+  closeSheet(document.querySelector("#session-timeout-sheet"));
+  showToast(t("Время автоблокировки сохранено"));
+}
+
+function updateSessionTimeoutControls() {
+  if (!controller) return;
+  const minutes = controller.getSessionTimeoutMinutes();
+  const summary = document.querySelector("[data-current-session-timeout]");
+  if (summary) summary.textContent = formatSessionTimeout(minutes, true);
+
+  document.querySelectorAll("[data-session-timeout-option]").forEach((button) => {
+    const active = Number(button.dataset.sessionTimeoutOption) === minutes;
+    button.classList.toggle("is-selected", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  const custom = document.querySelector("#custom-session-timeout");
+  if (custom) custom.value = [5, 10, 15].includes(minutes) ? "" : String(minutes);
+}
+
+function formatSessionTimeout(minutes, includeContext = false) {
+  if (getLanguage() === "en") {
+    return includeContext ? `After ${minutes} min of inactivity` : `${minutes} min`;
+  }
+  const mod100 = minutes % 100;
+  const mod10 = minutes % 10;
+  const unit = mod100 >= 11 && mod100 <= 14
+    ? "минут"
+    : mod10 === 1
+      ? "минуту"
+      : mod10 >= 2 && mod10 <= 4
+        ? "минуты"
+        : "минут";
+  return includeContext ? `Через ${minutes} ${unit} бездействия` : `${minutes} ${unit}`;
 }
 
 function requestReviewScreen(screen) {
   if (runtime?.mode !== "preview") return;
+  if (!controller.session) {
+    renderScreen(screen, { populate: false });
+    return;
+  }
   if (["vault", "settings", "change-password", "destroy"].includes(screen)) {
     runAction(() => controller.navigate(screen));
   } else if (screen === "detail" && controller.snapshot().selectedId) {
@@ -557,7 +640,7 @@ function bindGlobalInteractions() {
   listenAll("[data-theme-toggle]", "click", switchTheme);
   listenAll("[data-screen]", "click", (event) => requestReviewScreen(event.currentTarget.dataset.screen));
   listenAll("[data-theme-choice]", "click", (event) => setTheme(event.currentTarget.dataset.themeChoice));
-  screenPicker.addEventListener("change", () => requestReviewScreen(screenPicker.value));
+  screenPicker?.addEventListener("change", () => requestReviewScreen(screenPicker.value));
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeSheet(document.querySelector(".sheet-backdrop.is-open"));
     if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") {
@@ -565,17 +648,90 @@ function bindGlobalInteractions() {
       document.querySelector("#entry-search")?.focus();
     }
   });
+  for (const eventName of ["pointerdown", "keydown", "input"]) {
+    document.addEventListener(eventName, recordSessionActivity, { passive: true });
+  }
+}
+
+function bindReviewBridge() {
+  if (runtime?.mode !== "preview" || globalThis.parent === globalThis) return;
+  globalThis.addEventListener("message", (event) => {
+    if (
+      event.origin !== location.origin
+      || event.source !== globalThis.parent
+      || event.data?.type !== REVIEW_MESSAGE_TYPE
+    ) {
+      return;
+    }
+
+    const { action, value } = event.data;
+    if (action === "ping") {
+      postToReviewHost("ready");
+    } else if (action === "screen") {
+      requestReviewScreen(value);
+    } else if (action === "theme") {
+      setTheme(value);
+    } else if (action === "language") {
+      setLanguage(value);
+      refreshLanguageDependentUi();
+    }
+  });
+  postToReviewHost("ready");
+}
+
+function postToReviewHost(action, value = null) {
+  if (runtime?.mode !== "preview" || globalThis.parent === globalThis) return;
+  globalThis.parent.postMessage(
+    { type: REVIEW_MESSAGE_TYPE, action, value },
+    location.origin,
+  );
 }
 
 function bindLifecycle() {
-  if (typeof runtime.webApp.onEvent !== "function") return;
-  runtime.webApp.onEvent("deactivated", () => {
-    if (!controller?.session) return;
-    hideVisibleSecret();
+  runtime.webApp.onEvent?.("deactivated", deactivateSession);
+  runtime.webApp.onEvent?.("activated", activateSession);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) deactivateSession();
+    else activateSession();
   });
-  runtime.webApp.onEvent("activated", () => {
-    if (!controller || controller.session) return;
-    runAction(() => controller.resume());
+}
+
+function recordSessionActivity() {
+  if (!controller?.session || appInactive) return;
+  controller.touchSession(Date.now());
+  scheduleAuthenticationExpiry();
+}
+
+function deactivateSession() {
+  if (appInactive) return;
+  appInactive = true;
+  hideVisibleSecret();
+  clearSensitiveForms();
+  document.querySelectorAll(".sheet-backdrop.is-open").forEach(closeSheet);
+  controller?.deactivate(Date.now());
+  scheduleAuthenticationExpiry();
+}
+
+function activateSession() {
+  if (!controller || document.hidden) return;
+  appInactive = false;
+  runAction(async () => {
+    await controller.resume(Date.now());
+    scheduleAuthenticationExpiry();
+  });
+}
+
+function clearSensitiveForms() {
+  document.querySelectorAll(
+    "#creation-form input, #unlock-form input, #record-form input, #record-form textarea, #change-password-form input, #destroy-form input, #forgot-reset-form input",
+  ).forEach((field) => {
+    if (field.type === "checkbox") field.checked = false;
+    else field.value = "";
+  });
+  document.querySelectorAll(
+    "#destroy-form button[type='submit'], #forgot-reset-form button[type='submit']",
+  ).forEach((button) => {
+    button.disabled = true;
   });
 }
 
@@ -665,7 +821,10 @@ async function boot() {
   }
 
   document.body.classList.add(`runtime-${runtime.mode}`);
-  controller = new VaultAppController({ persistence: runtime.persistence });
+  controller = new VaultAppController({
+    persistence: runtime.persistence,
+    sessionTimeoutMinutes: loadSessionTimeoutMinutes(),
+  });
   controller.subscribe((state) => {
     renderScreen(state.screen);
     scheduleAuthenticationExpiry();
@@ -682,6 +841,7 @@ async function boot() {
   try {
     await controller.initialize();
     bindLifecycle();
+    bindReviewBridge();
   } catch (error) {
     if (error?.code !== "unsupported_storage") showError(error);
     renderScreen("unsupported");

@@ -18,20 +18,19 @@ class TelegramStorageAdapter {
     this.timeoutMs = timeoutMs;
   }
 
-  async get(key) {
+  async getExisting(key) {
     validateKey(key);
-    const [storedValue, canRestore] = await invoke(
+    const [storedValue] = await invoke(
       this.storage,
       "getItem",
       [key],
       this.timeoutMs,
       this.operation("getItem"),
     );
-    const value = storedValue === null && canRestore ? await this.restore(key) : storedValue;
-    if (value !== null && typeof value !== "string") {
+    if (storedValue !== null && typeof storedValue !== "string") {
       throw new TelegramStorageError("invalid_response", this.operation("getItem"));
     }
-    return value;
+    return storedValue;
   }
 
   async setVerified(key, value) {
@@ -44,7 +43,7 @@ class TelegramStorageAdapter {
       operation: this.operation("setItem"),
       timeoutMs: this.timeoutMs,
       unconfirmedCode: "write_not_confirmed",
-      verify: async () => (await this.get(key)) === value,
+      verify: async () => (await this.getExisting(key)) === value,
     });
   }
 
@@ -57,12 +56,15 @@ class TelegramStorageAdapter {
       operation: this.operation("removeItem"),
       timeoutMs: this.timeoutMs,
       unconfirmedCode: "remove_not_confirmed",
-      verify: async () => (await this.get(key)) === null,
+      verify: async () => (await this.getExisting(key)) === null,
     });
   }
 
-  async restore(key) {
-    if (this.kind !== "secure") return null;
+  async restoreExplicitly(key) {
+    validateKey(key);
+    if (this.kind !== "secure") {
+      throw new TelegramStorageError("unsupported_operation", this.operation("restoreItem"));
+    }
     const [value] = await invoke(
       this.storage,
       "restoreItem",
@@ -70,6 +72,9 @@ class TelegramStorageAdapter {
       this.timeoutMs,
       this.operation("restoreItem"),
     );
+    if (value !== null && typeof value !== "string") {
+      throw new TelegramStorageError("invalid_response", this.operation("restoreItem"));
+    }
     return value;
   }
 

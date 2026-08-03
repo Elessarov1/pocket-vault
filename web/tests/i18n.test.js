@@ -65,6 +65,7 @@ test("translation and locale follow the selected language", () => {
 test("every static Russian UI string has an English translation", async () => {
   const files = [
     new URL("../index.html", import.meta.url),
+    new URL("../review.html", import.meta.url),
     new URL("../privacy.html", import.meta.url),
   ];
   const missing = new Set();

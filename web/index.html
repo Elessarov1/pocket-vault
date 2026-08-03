@@ -14,83 +14,9 @@
     <script src="app.js" type="module"></script>
   </head>
   <body>
-    <div class="prototype-layout">
-      <aside class="review-panel" aria-label="Навигация по прототипу">
-        <div class="review-brand">
-          <span class="brand-mark brand-mark--small" aria-hidden="true">
-            <svg viewBox="0 0 32 32"><path d="M8 7.5h16v14.2a4.3 4.3 0 0 1-4.3 4.3h-7.4A4.3 4.3 0 0 1 8 21.7V7.5Z"/><path d="M8 12.5h16M16 12.5v4.2"/><circle cx="16" cy="18.7" r="2.2"/></svg>
-          </span>
-          <div>
-            <strong>Pocket Vault</strong>
-            <span>Черновик интерфейса · 01</span>
-          </div>
-        </div>
-
-        <div class="review-intro">
-          <p class="eyebrow">Направление</p>
-          <h1>Спокойный, честный, локальный.</h1>
-          <p>Пароли — основной сценарий. Коды и заметки остаются рядом, но не перетягивают на себя смысл продукта.</p>
-        </div>
-
-        <nav class="screen-list" id="screen-list">
-          <p class="review-label">Экраны</p>
-          <button type="button" data-screen="onboarding"><span>01</span> Создание</button>
-          <button type="button" data-screen="locked"><span>02</span> Вход</button>
-          <button type="button" data-screen="vault"><span>03</span> Хранилище</button>
-          <button type="button" data-screen="detail"><span>04</span> Запись</button>
-          <button type="button" data-screen="edit"><span>05</span> Редактор</button>
-          <button type="button" data-screen="settings"><span>06</span> Настройки</button>
-          <button type="button" data-screen="change-password"><span>07</span> Смена пароля</button>
-          <button type="button" data-screen="destroy"><span>08</span> Уничтожение</button>
-          <button type="button" data-screen="unsupported"><span>09</span> Несовместимость</button>
-        </nav>
-
-        <div class="theme-control" aria-label="Тема прототипа">
-          <p class="review-label">Тема</p>
-          <div class="segmented">
-            <button class="is-active" type="button" data-theme-choice="light">Светлая</button>
-            <button type="button" data-theme-choice="dark">Тёмная</button>
-          </div>
-        </div>
-        <button class="language-button language-button--panel" type="button" data-language-toggle>EN</button>
-
-        <p class="review-note">Preview-режим хранит зашифрованные данные только в памяти вкладки — до перезагрузки.</p>
-      </aside>
-
-      <main class="preview-stage">
-        <div class="mobile-review-bar">
-          <label for="screen-picker">Экран</label>
-          <select id="screen-picker">
-            <option value="onboarding">Создание</option>
-            <option value="locked">Вход</option>
-            <option value="vault">Хранилище</option>
-            <option value="detail">Запись</option>
-            <option value="edit">Редактор</option>
-            <option value="settings">Настройки</option>
-            <option value="change-password">Смена пароля</option>
-            <option value="destroy">Уничтожение</option>
-            <option value="unsupported">Несовместимость</option>
-          </select>
-          <button type="button" class="theme-icon-button" data-theme-toggle aria-label="Переключить на тёмную тему">
-            <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/></svg>
-            <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.64 5.64l1.42 1.42m9.88 9.88 1.42 1.42m0-12.72-1.42 1.42M7.06 16.94l-1.42 1.42"/><circle cx="12" cy="12" r="4"/></svg>
-          </button>
-        </div>
-
-        <section class="device-shell" aria-label="Предпросмотр мобильного приложения">
-          <div class="device-status" aria-hidden="true">
-            <span>9:41</span>
-            <div>
-              <svg viewBox="0 0 18 12"><path d="M1 10h2V8H1v2Zm4 0h2V6H5v4Zm4 0h2V3H9v7Zm4 0h2V1h-2v9Z"/></svg>
-              <svg viewBox="0 0 18 12"><path d="M1 4.5C5.2.7 12.8.7 17 4.5M4 7.2c2.8-2.5 7.2-2.5 10 0M7.2 9.7c1-1 2.6-1 3.6 0"/></svg>
-              <span class="battery"></span>
-            </div>
-          </div>
-          <div id="app-screen" class="app-screen" aria-live="polite"></div>
-          <div class="home-indicator" aria-hidden="true"></div>
-        </section>
-      </main>
-    </div>
+    <main class="production-app">
+      <div id="app-screen" class="app-screen" aria-live="polite"></div>
+    </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -138,9 +64,9 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
             </summary>
             <div class="passphrase-example__content">
-              <span>Пример запоминаемого формата</span>
-              <code>следуй-за-белым-кроликом</code>
-              <small>Добавьте ещё 2–3 случайных слова.</small>
+              <span>Пример формата — не используйте эту фразу</span>
+              <code>маяк-кедр-трамвай-барсук-облако-компас</code>
+              <small>Составьте собственную фразу из 6–7 случайных несвязанных слов.</small>
             </div>
           </details>
           <div class="field">
@@ -165,7 +91,7 @@
             </span>
             <h3 id="security-sheet-title">Как защищены записи</h3>
             <p>Записи шифруются на устройстве до сохранения. В DeviceStorage хранится только шифротекст.</p>
-            <p>Для быстрого входа мастер-пароль хранится в защищённом хранилище устройства до конца текущего дня. Он не отправляется разработчику.</p>
+            <p>Мастер-пароль не сохраняется. После разблокировки сессия существует только в памяти и автоматически блокируется после бездействия.</p>
             <button class="button button--primary button--full" type="button" data-close-sheet>Понятно</button>
           </section>
         </div>
@@ -436,6 +362,11 @@
             <span><strong>Сменить мастер-пароль</strong><small>Потребуется текущий пароль</small></span>
             <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
           </button>
+          <button class="settings-row" type="button" data-open-sheet="session-timeout-sheet">
+            <span class="settings-icon settings-icon--lilac"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+            <span><strong>Автоблокировка</strong><small data-current-session-timeout>Через 5 минут бездействия</small></span>
+            <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
         </div>
 
         <div class="settings-group">
@@ -468,6 +399,33 @@
             <span><strong>Уничтожить хранилище</strong><small>Удалить все локальные записи</small></span>
             <svg class="chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></svg>
           </button>
+        </div>
+
+        <div class="sheet-backdrop" id="session-timeout-sheet" hidden>
+          <section class="bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="session-timeout-title">
+            <div class="sheet-handle" aria-hidden="true"></div>
+            <button class="sheet-close" type="button" data-close-sheet aria-label="Закрыть">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+            </button>
+            <span class="sheet-symbol sheet-symbol--safe" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            </span>
+            <h3 id="session-timeout-title">Когда блокировать?</h3>
+            <p>Мастер-пароль не сохраняется. Разблокированная сессия хранится только в памяти.</p>
+            <div class="session-timeout-options" role="group" aria-label="Время до автоблокировки">
+              <button type="button" data-session-timeout-option="5" aria-pressed="true">5 минут</button>
+              <button type="button" data-session-timeout-option="10" aria-pressed="false">10 минут</button>
+              <button type="button" data-session-timeout-option="15" aria-pressed="false">15 минут</button>
+            </div>
+            <form class="session-timeout-custom" id="custom-session-timeout-form">
+              <label for="custom-session-timeout">Другое значение</label>
+              <div>
+                <input id="custom-session-timeout" type="number" min="1" max="1440" step="1" inputmode="numeric" placeholder="1–1440" required>
+                <span>минут</span>
+                <button class="button button--primary" type="submit">Сохранить</button>
+              </div>
+            </form>
+          </section>
         </div>
 
       </section>
@@ -511,7 +469,7 @@
             <label for="confirm-new-master-password">Повторите новый пароль</label>
             <input id="confirm-new-master-password" type="password" autocomplete="new-password" placeholder="Введите ещё раз" required>
           </div>
-          <p class="form-note">После смены новый мастер-пароль будет сохранён для быстрого входа до конца текущего дня.</p>
+          <p class="form-note">Мастер-пароль не сохраняется. Текущая сессия продолжит действовать до автоблокировки.</p>
           <button class="button button--primary button--full" type="submit">Сменить мастер-пароль</button>
         </form>
       </section>

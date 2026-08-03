@@ -96,6 +96,20 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+.production-app {
+  position: relative;
+  min-height: 100dvh;
+  background: var(--paper);
+}
+
+.production-app .app-screen {
+  position: relative;
+  width: min(100%, 720px);
+  height: 100dvh;
+  margin: 0 auto;
+  background: var(--paper);
+}
+
 button,
 input,
 textarea,
@@ -406,6 +420,16 @@ svg {
 
 .app-screen::-webkit-scrollbar {
   display: none;
+}
+
+.review-frame {
+  position: absolute;
+  inset: 37px 0 0;
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 0;
+  background: var(--paper);
 }
 
 .home-indicator {
@@ -1643,6 +1667,69 @@ svg {
   display: grid;
 }
 
+.session-timeout-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin: 16px 0;
+}
+
+.session-timeout-options button {
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.session-timeout-options button.is-selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.session-timeout-custom {
+  display: grid;
+  gap: 7px;
+}
+
+.session-timeout-custom label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.session-timeout-custom > div {
+  display: grid;
+  grid-template-columns: minmax(64px, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.session-timeout-custom input {
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+}
+
+.session-timeout-custom span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.session-timeout-custom .button {
+  min-height: 44px;
+  padding-inline: 15px;
+}
+
 .reset-warning {
   display: grid;
   grid-template-columns: 28px 1fr;
@@ -1817,8 +1904,21 @@ svg {
   }
 
   .screen {
-    padding-top: 61px;
+    padding-top: max(18px, env(safe-area-inset-top));
     padding-bottom: max(28px, env(safe-area-inset-bottom));
+  }
+
+  body.review-page .preview-stage {
+    padding-top: 52px;
+  }
+
+  body.review-page .device-shell {
+    height: calc(100svh - 52px);
+    min-height: 0;
+  }
+
+  .review-frame {
+    inset: 0;
   }
 
   .toast {
@@ -1832,6 +1932,11 @@ svg {
 
 body.runtime-telegram .prototype-layout {
   display: block;
+  min-height: 0;
+  height: var(--tg-viewport-height, 100dvh);
+}
+
+body.runtime-telegram .production-app {
   min-height: 0;
   height: var(--tg-viewport-height, 100dvh);
 }

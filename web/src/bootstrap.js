@@ -20,7 +20,9 @@ export async function initializePreviewRuntime() {
 function createRuntime(webApp, mode) {
   const persistence = new VaultPersistence({
     deviceStorage: new TelegramDeviceStorage(webApp.DeviceStorage),
-    secureStorage: new TelegramSecureStorage(webApp.SecureStorage),
+    secureStorage: webApp.SecureStorage
+      ? new TelegramSecureStorage(webApp.SecureStorage)
+      : null,
     wasm,
   });
 
